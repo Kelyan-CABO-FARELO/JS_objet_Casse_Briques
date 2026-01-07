@@ -3,12 +3,56 @@ body{
 }
 
 h1{
+    margin: 45px;
     text-align: center;
-    color: chocolate;
+    animation: neon-text 5s infinite;
 }
 
 canvas{
     background-color: dodgerblue;
     display: block;
-    margin: auto;
+    margin: 75px auto 10px;
+    border-radius: 10px;
+    animation: neon-border 5s infinite;
+}
+
+@keyframes neon-border {
+    0% {
+        box-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
+    }
+    25% {
+        box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff;
+    }
+    50% {
+        box-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00, 0 0 20px #ffff00, 0 0 40px #ffff00;
+    }
+    75% {
+        box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00;
+    }
+    100% {
+        box-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
+    }
+}
+
+@keyframes neon-text {
+    0% {
+        color: #ff00ff;
+        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+    }
+    25% {
+        color: #00ffff;
+        text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
+    }
+    50% {
+        color: #ffff00;
+        text-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00;
+    }
+    75% {
+        color: #00ff00;
+        text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+    }
+    100% {
+        color: #ff00ff;
+        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+    }
 }
