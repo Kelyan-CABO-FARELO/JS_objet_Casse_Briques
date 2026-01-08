@@ -2,6 +2,7 @@
 import '../assets/css/style.css';
 // Import des assets de sprite
 import ballImgSrc from '../assets/img/ball.png';
+import CustomMath from "./CustomMath";
 
 class Game {
     //Contexte de dessin du canvas
@@ -13,10 +14,11 @@ class Game {
     //Temporaire: position de base de la balle
     ballX = 400;
     ballY = 300;
-    ballSpeed = 5;
+    ballSpeed = 10;
+    ballAngle = 60;
     ballVelocity = {
-        x: this.ballSpeed * Math.cos(Math.PI / 6), // Trajectoire de la balle avec 30° d'angle (PI / 6)
-        y:  this.ballSpeed * -1 * Math.sin(Math.PI/6)
+        x: this.ballSpeed * Math.cos(CustomMath.degToRad(this.ballAngle)), // Trajectoire de la balle avec 30° d'angle (PI / 6)
+        y:  this.ballSpeed * -1 * Math.sin(CustomMath.degToRad(this.ballAngle))
     };
 
 
@@ -73,11 +75,11 @@ class Game {
         this.ballY += this.ballVelocity.y;
 
         // Collision avec le côté droite ou gauche de la scène => Inversion du X de la vélocité
-        if(this.ballX + 20 >= 800 || this.ballX <= 0) {
+        if(this.ballX + 20 >= this.ctx.canvas.width || this.ballX <= 0) {
             this.ballVelocity.x *= -1
         }
         // Collision avec le côté haut ou bas de la scène => Inversion du Y de la vélocité
-        if(this.ballY + 20 >= 600 || this.ballY <= 0) {
+        if(this.ballY + 20 >= this.ctx.canvas.height || this.ballY <= 0) {
             this.ballVelocity.y *= -1
         }
 
