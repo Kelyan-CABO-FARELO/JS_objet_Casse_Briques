@@ -96,7 +96,7 @@ class Game {
     // Mise en place des objets du jeu sur la scene
     initGameObjects() {
         // Balle
-        const ball = new Ball(this.images.ball, 20, 20, 45, 4);
+        const ball = new Ball(this.images.ball, 20, 20, 20, 4);
         ball.setPosition(400, 300);
         this.state.balls.push(ball);
 
@@ -132,6 +132,13 @@ class Game {
             theEdge.draw();
         });
 
+        // Cycle du paddle
+        this.state.paddle.update();
+
+        // Dessin du paddle
+        // TODO: Collision avec les bords, déplacement, ect
+        this.state.paddle.draw();
+
         //Cycles des balles
         // On crée un tableau pour stocker les balles non-perdues
         const savedBalls = [];
@@ -166,6 +173,7 @@ class Game {
                 }
             });
 
+            // Dessin de la balle
             theBall.draw();
         });
 
