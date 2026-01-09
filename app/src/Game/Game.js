@@ -9,6 +9,7 @@ import edgeImgSrc from '../assets/img/edge.png';
 import Ball from "./Ball";
 import GameObject from "./GameObject";
 import CollisionType from "./DataType/CollisionType";
+import Paddle from "./Paddle";
 
 class Game {
     //Contexte de dessin du canvas
@@ -95,20 +96,19 @@ class Game {
     // Mise en place des objets du jeu sur la scene
     initGameObjects() {
         // Balle
-        const ball = new Ball(this.images.ball, 20, 20, 143.5, 5);
-        ball.setPosition(390, 290);
+        const ball = new Ball(this.images.ball, 20, 20, 45, 4);
+        ball.setPosition(400, 300);
         this.state.balls.push(ball);
 
-        // Dessin des balles
-        this.state.balls.forEach(theBall => {
-            theBall.draw();
-        });
+        // Paddle
+        const paddle = new Paddle(this.images.paddle, 100, 20, 0, 0);
+        paddle.setPosition(350, 530);
+        this.state.paddle = paddle;
 
         //Bordure de la mort
         const deathEdge = new GameObject(this.images.edge, 800, 20);
         deathEdge.setPosition(0, 630);
         this.state.deathEdge = deathEdge;
-        //TODO: On le dessine ou pas ?
 
         // Bordures à rebond
         const edgeTop = new GameObject(this.images.edge, 800, 20);
@@ -118,7 +118,6 @@ class Game {
         const edgeLeft = new GameObject(this.images.edge, 20, 610);
         edgeLeft.setPosition(0, 20);
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
-
 
     }
 
@@ -134,11 +133,20 @@ class Game {
         });
 
         //Cycles des balles
+        // On crée un tableau pour stocker les balles non-perdues
+        const savedBalls = [];
+
         this.state.balls.forEach(theBall => {
             theBall.update();
 
-            // TODO: Collision de la balle avec le bord de la mort
+            // Collision de la balle avec le bord de la mort
+            if( theBall.getCollisionType(this.state.deathEdge) !== CollisionType.NONE){
+                // On enlève la balle du state
+                return;
+            }
 
+            // On sauvegarde la balle en cours (car si on est là, c'est qu'on a pas tapé le bord de la mort)
+            savedBalls.push(theBall);
 
             // Collisions de la balle avec les bords rebondissants
             this.state.bouncingEdges.forEach(theEdge => {
@@ -160,6 +168,17 @@ class Game {
 
             theBall.draw();
         });
+
+        // Mise à jour du state.balls avec savedBalls
+        this.state.balls = savedBalls;
+
+        //? S'il n'y a aucune balle dans savedBalls, on a perdu
+        if(savedBalls <= 0) {
+            console.log("NUUUUUUUULLLLL !!!!");
+            // On sort de la boucle loop()
+            return
+        }
+
         // Appel de la frame suivante
         requestAnimationFrame(this.loop.bind(this));
     }
