@@ -105,8 +105,9 @@ class Game {
     // Mise en place des objets du jeu sur la scene
     initGameObjects() {
         // Balle
-        const ball = new Ball(this.images.ball, 20, 20, 20, 7);
+        const ball = new Ball(this.images.ball, 20, 20, 20, 5);
         ball.setPosition(400, 300);
+        ball.isCircular = true;
         this.state.balls.push(ball);
 
         // Paddle

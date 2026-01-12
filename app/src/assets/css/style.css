@@ -1,58 +1,60 @@
-body{
-    background-color: rgb(22, 25, 29);
+@import url('https://fonts.googleapis.com/css2?family=Nosifier&display=swap');
+
+html {
+    height: 100%;
 }
 
-h1{
-    margin: 45px;
+body {
+    margin: 0;
+    height: 100%;
+    background: radial-gradient(circle, #5a0000, #000000 75%);
+    font-family: 'Nosifier', cursive;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* Empêche les barres de défilement dues aux lueurs */
+}
+
+h1 {
+    font-size: 6rem;
+    color: #ff1a1a;
     text-align: center;
-    animation: neon-text 5s infinite;
+    margin: 0 0 3rem 0;
+    animation: text-flicker 4s linear infinite;
 }
 
-canvas{
-    background-color: dodgerblue;
+canvas {
+    background-color: #000;
     display: block;
-    margin: 75px auto 10px;
-    border-radius: 10px;
-    animation: neon-border 5s infinite;
+    border: 3px solid #330000;
+    box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000, inset 0 0 15px #ff0000;
+    animation: border-pulse 2s infinite alternate;
 }
 
-@keyframes neon-border {
-    0% {
-        box-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
+@keyframes text-flicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+        text-shadow:
+            0 0 5px #ff1a1a,
+            0 0 10px #ff1a1a,
+            0 0 20px #ff1a1a,
+            0 0 40px #d40000,
+            0 0 80px #d40000;
+        color: #ff1a1a;
     }
-    25% {
-        box-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff;
-    }
-    50% {
-        box-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00, 0 0 20px #ffff00, 0 0 40px #ffff00;
-    }
-    75% {
-        box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00;
-    }
-    100% {
-        box-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
+    20%, 24%, 55% {
+        text-shadow: none;
+        color: #330000;
     }
 }
 
-@keyframes neon-text {
-    0% {
-        color: #ff00ff;
-        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+@keyframes border-pulse {
+    from {
+        border-color: #660000;
+        box-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000, inset 0 0 15px #ff0000;
     }
-    25% {
-        color: #00ffff;
-        text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff;
-    }
-    50% {
-        color: #ffff00;
-        text-shadow: 0 0 5px #ffff00, 0 0 10px #ffff00;
-    }
-    75% {
-        color: #00ff00;
-        text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
-    }
-    100% {
-        color: #ff00ff;
-        text-shadow: 0 0 5px #ff00ff, 0 0 10px #ff00ff;
+    to {
+        border-color: #ff3333;
+        box-shadow: 0 0 20px #ff0000, 0 0 40px #d40000, 0 0 60px #d40000, inset 0 0 20px #d40000;
     }
 }
