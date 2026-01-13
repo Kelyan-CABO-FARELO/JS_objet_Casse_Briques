@@ -18,7 +18,20 @@ class Game {
             width: 800,
             height: 600
         },
-        ballRadius: 10
+        ball: {
+            radius: 10,
+            orientation: 45,
+            speed: 5,
+            position: {
+                x: 400,
+                y: 300
+            },
+            angleAlteration: 30
+        },
+        paddleSize: {
+            width: 100,
+            height: 20
+        }
     }
     //Contexte de dessin du canvas
     ctx;
@@ -74,8 +87,8 @@ class Game {
         document.body.append(elH1);
 
         const elCanvas = document.createElement('canvas');
-        elCanvas.width = 800;
-        elCanvas.height = 600;
+        elCanvas.width = this.config.canvasSize.width;
+        elCanvas.height = this.config.canvasSize.height;
 
         document.body.append(elCanvas);
 
@@ -113,28 +126,44 @@ class Game {
     // Mise en place des objets du jeu sur la scene
     initGameObjects() {
         // Balle
-        const ball = new Ball(this.images.ball, 20, 20, 20, 5);
-        ball.setPosition(400, 300);
+        const ballDiameter = this.config.ball.radius * 2
+        const ball = new Ball(
+            this.images.ball,
+            ballDiameter,
+            ballDiameter,
+            this.config.ball.orientation,
+            this.config.ball.speed);
+        ball.setPosition(this.config.ball.position.x, this.config.ball.position.y);
         ball.isCircular = true;
         this.state.balls.push(ball);
 
         // Paddle
-        const paddle = new Paddle(this.images.paddle, 100, 20, 0, 0);
-        paddle.setPosition(350, 530);
+        const paddle = new Paddle(
+            this.images.paddle,
+            this.config.paddleSize.width,
+            this.config.paddleSize.height,
+            0, 0);
+        paddle.setPosition((this.config.canvasSize.width / 2) - (this.config.paddleSize.width / 2),
+            this.config.canvasSize.height - this.config.paddleSize.height - 20);
         this.state.paddle = paddle;
 
-        //Bordure de la mort
-        const deathEdge = new GameObject(this.images.edge, 800, 20);
-        deathEdge.setPosition(0, 630);
+        //Bordure de la mort (Bordure du bas)
+        const deathEdge = new GameObject(this.images.edge, this.config.canvasSize.width, 20);
+        deathEdge.setPosition(0, this.config.canvasSize.height + 30);
         this.state.deathEdge = deathEdge;
 
         // Bordures à rebond
-        const edgeTop = new GameObject(this.images.edge, 800, 20);
+        // Haut
+        const edgeTop = new GameObject(this.images.edge, this.config.canvasSize.width, 20);
         edgeTop.setPosition(0, 0);
-        const edgeRight = new GameObject(this.images.edge, 20, 610);
-        edgeRight.setPosition(780, 20);
+
+        // Droite
+        const edgeRight = new GameObject(this.images.edge, 20, this.config.canvasSize.height + 10);
+        edgeRight.setPosition(this.config.canvasSize.width - 20, 20);
         edgeRight.tag = 'RightEdge'
-        const edgeLeft = new GameObject(this.images.edge, 20, 610);
+
+        // Gauche
+        const edgeLeft = new GameObject(this.images.edge, 20, this.config.canvasSize.height + 10);
         edgeLeft.setPosition(0, 20);
         edgeLeft.tag = 'LeftEdge'
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
@@ -145,7 +174,7 @@ class Game {
     // Boucle d'animation
     loop() {
         // On efface tout le canvas
-        this.ctx.clearRect(0, 0, 800, 600);
+        this.ctx.clearRect(0, 0, this.config.canvasSize.width, this.config.canvasSize.height);
 
         // Dessin des bordures à rebond
         this.state.bouncingEdges.forEach(theEdge => {
@@ -228,9 +257,9 @@ class Game {
 
                         //? Altération de l'angle en fonction du mouvement du paddle
                         if(this.state.userInput.paddleRight)
-                            alteration = -30;
+                            alteration = -1 * this.config.ball.angleAlteration;
                         else if(this.state.userInput.paddleLeft)
-                            alteration = 30;
+                            alteration = this.config.ball.angleAlteration;
 
                         theBall.reverseOrientationY(alteration);
 
