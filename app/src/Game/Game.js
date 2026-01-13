@@ -13,6 +13,7 @@ import Ball from "./Ball";
 import GameObject from "./GameObject";
 import CollisionType from "./DataType/CollisionType";
 import Paddle from "./Paddle";
+import Brik from "./Brik";
 
 class Game {
 
@@ -49,6 +50,8 @@ class Game {
     state = {
         // Balles (plusieurs car possibles multiball)
         balls: [],
+        // Briques
+        bricks: [],
         // Bordures de la mort
         deathEdge: null,
         // Bordures à rebond
@@ -181,13 +184,27 @@ class Game {
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
         // Chargement des briques
-        this.loadBricks();
+        this.loadBricks(this.levels.data[0]);
 
     }
 
     // Création des briques
-    loadBricks(){
-        // TODO: Les boucles de générération
+    loadBricks(levelArray){
+        // LIGNE
+        for(let line = 0; line < levelArray.length; line ++){
+            // COLONNES
+            for(let column = 0; column < levelArray[line].length; column ++){
+                let brickType = levelArray[line][column];
+                //? Si la valeur trouvée est 0, c'est un espace vide, donc on passe à la colonne suivante
+                if(brickType === 0) continue;
+
+                //? Si on a bien une brique, on la crée et on la met dans state
+                const brik = new Brik(this.images.brick, 50, 25, brickType);
+                brik.setPosition(20 + (50 * column), 20 + (25 * line));
+
+                this.state.bricks.push(brik);
+            }
+        }
     }
 
 
@@ -199,6 +216,11 @@ class Game {
         // Dessin des bordures à rebond
         this.state.bouncingEdges.forEach(theEdge => {
             theEdge.draw();
+        });
+
+        // Dessin des briques
+        this.state.bricks.forEach(theBrick => {
+            theBrick.draw();
         });
 
         // Cycle du paddle
@@ -223,7 +245,7 @@ class Game {
         //Mise à jour de la position
         this.state.paddle.update();
 
-        // Dessin du paddle
+
         // Collision du paddle avec les bords
         this.state.bouncingEdges.forEach(theEdge => {
             const collisionType = this.state.paddle.getCollisionType(theEdge);
@@ -247,6 +269,7 @@ class Game {
             // On remet à jour le paddle
             this.state.paddle.update();
         });
+        // Dessin du paddle
         this.state.paddle.draw();
 
         //Cycles des balles
