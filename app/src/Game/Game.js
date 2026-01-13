@@ -12,6 +12,14 @@ import CollisionType from "./DataType/CollisionType";
 import Paddle from "./Paddle";
 
 class Game {
+
+    config = {
+        canvasSize: {
+            width: 800,
+            height: 600
+        },
+        ballRadius: 10
+    }
     //Contexte de dessin du canvas
     ctx;
 
@@ -216,7 +224,22 @@ class Game {
                         theBall.reverseOrientationX();
                         break;
                     case CollisionType.VERTICAL:
-                        theBall.reverseOrientationY();
+                        let alteration = 0;
+
+                        //? Altération de l'angle en fonction du mouvement du paddle
+                        if(this.state.userInput.paddleRight)
+                            alteration = -30;
+                        else if(this.state.userInput.paddleLeft)
+                            alteration = 30;
+
+                        theBall.reverseOrientationY(alteration);
+
+                        //? Correction de l'angle si la balle arrive exactement à l'horizontale(0 et 180°) et reste bloqué
+                        if(theBall.orientation === 0)
+                            theBall.orientation = 10;
+                        else if(theBall.orientation === 180)
+                            theBall.orientation = 170;
+
                         break;
                     default:
                         break;
