@@ -2,6 +2,7 @@
 import '../assets/css/style.css';
 // Import des données de configuration
 import customConfig from '../config.json';
+import levelsConfig from '../levels.json';
 // Import des assets de sprite
 import ballImgSrc from '../assets/img/ball.png';
 import paddleImgSrc from '../assets/img/paddle.png';
@@ -35,6 +36,8 @@ class Game {
             height: 20
         }
     }
+
+    levels;
     //Contexte de dessin du canvas
     ctx;
 
@@ -59,9 +62,11 @@ class Game {
         }
     };
 
-    constructor(customConfig = {}) {
+    constructor(customConfig = {}, levelsConfig = []) {
         // Object.assign() permet de fusionner des objets littéraux (seulement le premier niveau
         Object.assign(this.config, customConfig);
+
+        this.levels = levelsConfig
     }
 
 
@@ -175,6 +180,14 @@ class Game {
         edgeLeft.tag = 'LeftEdge'
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
+        // Chargement des briques
+        this.loadBricks();
+
+    }
+
+    // Création des briques
+    loadBricks(){
+        // TODO: Les boucles de générération
     }
 
 
@@ -343,6 +356,6 @@ class Game {
     }
 }
 
-const theGame = new Game(customConfig);
+const theGame = new Game(customConfig, levelsConfig);
 
 export default theGame;
