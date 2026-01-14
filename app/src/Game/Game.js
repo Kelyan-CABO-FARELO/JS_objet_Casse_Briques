@@ -14,6 +14,7 @@ import GameObject from "./GameObject";
 import CollisionType from "./DataType/CollisionType";
 import Paddle from "./Paddle";
 import Brik from "./Brik";
+import Edge from "./Edge";
 
 class Game {
 
@@ -97,7 +98,7 @@ class Game {
     initHtmlUI() {
 
         const elH1 = document.createElement('h1');
-        elH1.textContent = 'Casse Brique ! 🕹️';
+        elH1.textContent = 'Casse Brique !️';
 
         document.body.append(elH1);
 
@@ -169,18 +170,20 @@ class Game {
 
         // Bordures à rebond
         // Haut
-        const edgeTop = new GameObject(this.images.edge, this.config.canvasSize.width, 20);
+        const edgeTop = new Edge(this.images.edge, this.config.canvasSize.width, 20);
         edgeTop.setPosition(0, 0);
 
         // Droite
-        const edgeRight = new GameObject(this.images.edge, 20, this.config.canvasSize.height + 10);
-        edgeRight.setPosition(this.config.canvasSize.width - 20, 20);
+        const edgeRight = new Edge(this.images.edge, 20, this.config.canvasSize.height + 10);
+        edgeRight.setPosition(this.config.canvasSize.width - 20, 0); // Ajustement position X
         edgeRight.tag = 'RightEdge'
 
         // Gauche
-        const edgeLeft = new GameObject(this.images.edge, 20, this.config.canvasSize.height + 10);
-        edgeLeft.setPosition(0, 20);
+        const edgeLeft = new Edge(this.images.edge, 20, this.config.canvasSize.height + 10);
+        edgeLeft.setPosition(0, 0);
         edgeLeft.tag = 'LeftEdge'
+
+        // Pense à ajuster tes collisions ou la taille du canvas si les murs sont plus épais !
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
         // Chargement des briques
@@ -189,14 +192,14 @@ class Game {
     }
 
     // Création des briques
-    loadBricks(levelArray){
+    loadBricks(levelArray) {
         // LIGNE
-        for(let line = 0; line < levelArray.length; line ++){
+        for (let line = 0; line < levelArray.length; line++) {
             // COLONNES
-            for(let column = 0; column < levelArray[line].length; column ++){
+            for (let column = 0; column < levelArray[line].length; column++) {
                 let brickType = levelArray[line][column];
                 //? Si la valeur trouvée est 0, c'est un espace vide, donc on passe à la colonne suivante
-                if(brickType === 0) continue;
+                if (brickType === 0) continue;
 
                 //? Si on a bien une brique, on la crée et on la met dans state
                 const brik = new Brik(this.images.brick, 50, 25, brickType);
@@ -207,115 +210,67 @@ class Game {
         }
     }
 
-
-    // Boucle d'animation
-    loop() {
-        // On efface tout le canvas
-        this.ctx.clearRect(0, 0, this.config.canvasSize.width, this.config.canvasSize.height);
-
-        // Dessin des bordures à rebond
-        this.state.bouncingEdges.forEach(theEdge => {
-            theEdge.draw();
-        });
-
-        // Dessin des briques
-        this.state.bricks.forEach(theBrick => {
-            theBrick.draw();
-        });
-
-        // Cycle du paddle
-        // On analyse quelles commandes de mouvement est demandée pour le paddle
+    // Cycle de vie: 1- Entrées Utilisateur
+    checkUserInput() {
+        // -- Paddle
+        // On analyse quel commande de mouvement est demandée pour le paddle
         // Droite
         if (this.state.userInput.paddleRight) {
             this.state.paddle.orientation = 0;
             this.state.paddle.speed = 7;
         }
-
         // Gauche
         if (this.state.userInput.paddleLeft) {
             this.state.paddle.orientation = 180;
             this.state.paddle.speed = 7;
         }
-
         // Ni Droite Ni Gauche
-        if (!this.state.userInput.paddleLeft && !this.state.userInput.paddleRight) {
+        if (!this.state.userInput.paddleRight && !this.state.userInput.paddleLeft) {
             this.state.paddle.speed = 0;
         }
 
-        //Mise à jour de la position
+        // Mise à jour de la position
         this.state.paddle.update();
+    }
 
+    // Cycle de vie: 2- Collisions et calculs qui en découlent
+    checkCollisions() {
 
-        // Collision du paddle avec les bords
+        // Collisions du paddle avec les bords
         this.state.bouncingEdges.forEach(theEdge => {
             const collisionType = this.state.paddle.getCollisionType(theEdge);
 
-            //? Si aucune collision ou autre eque horizontal, on passe au edge suivant
-            if(collisionType !== CollisionType.HORIZONTAL) return;
+            // Si aucune collision ou autre que horizontal, on passe au edge suivant
+            if (collisionType !== CollisionType.HORIZONTAL) return;
 
-            //? Si la collision est horizontale, on arrête la vitesse du paddle
+            // Si la collision est horizontale, on arrête la vitesse du paddle
             this.state.paddle.speed = 0;
 
             // On récupère les limites de theEdge
             const edgeBounds = theEdge.getBounds();
-            //? Si on a touché la bordure de droite
-            if(theEdge.tag === "RightEdge") {
+
+            // Si on a touché la bordure de droite
+            if (theEdge.tag === "RightEdge") {
                 this.state.paddle.position.x = edgeBounds.left - 1 - this.state.paddle.size.width;
             }
-            //? Si on a touché la bordure de gauche
-            if(theEdge.tag === "LeftEdge") {
-                this.state.paddle.position.x = edgeBounds.right + 1
+            // Si on a touché la bordure de gauche
+            else if (theEdge.tag === "LeftEdge") {
+                this.state.paddle.position.x = edgeBounds.right + 1;
             }
-            // On remet à jour le paddle
+
+            // Mise à jour de la position
             this.state.paddle.update();
         });
-        // Dessin du paddle
-        this.state.paddle.draw();
 
-        //Cycles des balles
+        // Collisions des balles avec tous les objets
         // On crée un tableau pour stocker les balles non-perdues
         const savedBalls = [];
 
         this.state.balls.forEach(theBall => {
-            theBall.update();
 
             // Collision de la balle avec le bord de la mort
             if (theBall.getCollisionType(this.state.deathEdge) !== CollisionType.NONE) {
-                // On enlève la balle du state
                 return;
-            }
-
-            // Collision de la balle avec le paddle
-            if (theBall.getCollisionType(this.state.paddle) !== CollisionType.NONE) {
-                const collisionType = theBall.getCollisionType(this.state.paddle);
-
-                switch (collisionType) {
-                    case CollisionType.NONE:
-                        return;
-                    case CollisionType.HORIZONTAL:
-                        theBall.reverseOrientationX();
-                        break;
-                    case CollisionType.VERTICAL:
-                        let alteration = 0;
-
-                        //? Altération de l'angle en fonction du mouvement du paddle
-                        if(this.state.userInput.paddleRight)
-                            alteration = -1 * this.config.ball.angleAlteration;
-                        else if(this.state.userInput.paddleLeft)
-                            alteration = this.config.ball.angleAlteration;
-
-                        theBall.reverseOrientationY(alteration);
-
-                        //? Correction de l'angle si la balle arrive exactement à l'horizontale(0 et 180°) et reste bloqué
-                        if(theBall.orientation === 0)
-                            theBall.orientation = 10;
-                        else if(theBall.orientation === 180)
-                            theBall.orientation = 170;
-
-                        break;
-                    default:
-                        break;
-                }
             }
 
             // On sauvegarde la balle en cours (car si on est là, c'est qu'on a pas tapé le bord de la mort)
@@ -328,29 +283,140 @@ class Game {
                 switch (collisionType) {
                     case CollisionType.NONE:
                         return;
+
                     case CollisionType.HORIZONTAL:
                         theBall.reverseOrientationX();
                         break;
+
                     case CollisionType.VERTICAL:
                         theBall.reverseOrientationY();
                         break;
+
                     default:
                         break;
                 }
+
+            })
+            //Collision de la balle avec les briques
+            this.state.bricks.forEach(theBrick => {
+                const collisionType = theBall.getCollisionType(theBrick);
+
+                switch (collisionType) {
+                    case CollisionType.NONE:
+                        return;
+
+                    case CollisionType.HORIZONTAL:
+                        theBall.reverseOrientationX();
+                        break;
+
+                    case CollisionType.VERTICAL:
+                        theBall.reverseOrientationY();
+                        break;
+
+                    default:
+                        break;
+                }
+
+                // Ici on a forcément une collision (car la première clause de switch fait un return)
+                // TODO: Gérer le compteur de résistance de la brique
+                theBrick.strength --;
             });
 
-            // Dessin de la balle
-            theBall.draw();
+            // Collision avec le paddle
+            const paddleCollisionType = theBall.getCollisionType(this.state.paddle);
+            switch (paddleCollisionType) {
+                case CollisionType.HORIZONTAL:
+                    theBall.reverseOrientationX();
+                    break;
+
+                case CollisionType.VERTICAL:
+                    // Altération de l'angle en fonction du movement du paddle
+                    let alteration = 0;
+                    if (this.state.userInput.paddleRight)
+                        alteration = -1 * this.config.ball.angleAlteration;
+                    else if (this.state.userInput.paddleLeft)
+                        alteration = this.config.ball.angleAlteration;
+
+                    theBall.reverseOrientationY(alteration);
+
+                    // Correction pour un résultat de 0 et 180 pour éviter une trajectoire horizontale
+                    if (theBall.orientation === 0)
+                        theBall.orientation = 10;
+                    else if (theBall.orientation === 180)
+                        theBall.orientation = 170;
+
+                    break;
+
+                default:
+                    break;
+            }
         });
 
         // Mise à jour du state.balls avec savedBalls
         this.state.balls = savedBalls;
+    }
 
-        //? S'il n'y a aucune balle dans savedBalls, on a perdu
-        if (savedBalls <= 0) {
-            console.log("NUUUUUUUULLLLL !!!!");
-            // On sort de la boucle loop()
-            return
+    // Cycle de vie: 3- Mise à jours des données des GameObjects
+    updateObjects() {
+        // Balles
+        this.state.balls.forEach(theBall => {
+            theBall.update();
+        });
+
+        // Briques
+        // On ne conserve dans le state que les briques dont strength est différents de 0
+        this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0);
+    }
+
+    // Cycle de vie: 4- Rendu graphique des GameObjects
+    renderObjects() {
+        // On efface tous le canvas
+        this.ctx.clearRect(
+            0,
+            0,
+            this.config.canvasSize.width,
+            this.config.canvasSize.height
+        );
+
+        // Dessin des bordures à rebond
+        this.state.bouncingEdges.forEach(theEdge => {
+            theEdge.draw();
+        });
+
+        // Dessin des briques
+        this.state.bricks.forEach(theBrick => {
+            theBrick.draw();
+        });
+
+        // Dessin du paddle
+        this.state.paddle.draw();
+
+        // Dessin des balles
+        this.state.balls.forEach(theBall => {
+            theBall.draw();
+        });
+
+    }
+
+    // Boucle d'animation
+    loop() {
+        // Cycle 1
+        this.checkUserInput();
+
+        // Cycle 2
+        this.checkCollisions();
+
+        // Cycle 3
+        this.updateObjects();
+
+        // Cycle 4
+        this.renderObjects();
+
+        // S'il n'y a aucune balle restante, on a perdu
+        if (this.state.balls.length <= 0) {
+            console.log("Kaboooooooom !!!");
+            // On sort de loop()
+            return;
         }
 
         // Appel de la frame suivante
