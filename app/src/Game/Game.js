@@ -141,20 +141,7 @@ class Game {
 
     // Mise en place des objets du jeu sur la scene
     initGameObjects() {
-        // Balle
-        const ballDiameter = this.config.ball.radius * 2
-        const ball = new Ball(
-            this.images.ball,
-            ballDiameter,
-            ballDiameter,
-            this.config.ball.orientation,
-            this.config.ball.speed);
-        ball.setPosition((this.config.canvasSize.width / 2) - (this.config.paddleSize.width / 2),
-            this.config.canvasSize.height - this.config.paddleSize.height - 45);
-        ball.isCircular = true;
-        this.state.balls.push(ball);
-
-        // Paddle
+        // Paddle (créé en premier pour que la balle puisse se baser dessus)
         const paddle = new Paddle(
             this.images.paddle,
             this.config.paddleSize.width,
@@ -163,6 +150,26 @@ class Game {
         paddle.setPosition((this.config.canvasSize.width / 2) - (this.config.paddleSize.width / 2),
             this.config.canvasSize.height - this.config.paddleSize.height - 20);
         this.state.paddle = paddle;
+
+        // Calcul d'un angle de départ aléatoire
+        const randomAngle = Math.floor(Math.random() * 120) + 31; // 31 à 150
+
+        // Balle
+        const ballDiameter = this.config.ball.radius * 2
+        const ball = new Ball(
+            this.images.ball,
+            ballDiameter,
+            ballDiameter,
+            randomAngle,
+            this.config.ball.speed);
+        
+        // **NOUVEAU** : Positionnement de la balle sur le paddle
+        const ballX = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
+        const ballY = paddle.position.y - ball.size.height - 5; // 5 pixels au-dessus
+        ball.setPosition(ballX, ballY);
+
+        ball.isCircular = true;
+        this.state.balls.push(ball);
 
         //Bordure de la mort (Bordure du bas)
         const deathEdge = new GameObject(this.images.edge, this.config.canvasSize.width, 20);
@@ -188,7 +195,7 @@ class Game {
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
         // Chargement des briques
-        this.loadBricks(this.levels.data[4]);
+        this.loadBricks(this.levels.data[0]);
 
     }
 
