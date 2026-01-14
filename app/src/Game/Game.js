@@ -149,7 +149,8 @@ class Game {
             ballDiameter,
             this.config.ball.orientation,
             this.config.ball.speed);
-        ball.setPosition(this.config.ball.position.x, this.config.ball.position.y);
+        ball.setPosition((this.config.canvasSize.width / 2) - (this.config.paddleSize.width / 2),
+            this.config.canvasSize.height - this.config.paddleSize.height - 45);
         ball.isCircular = true;
         this.state.balls.push(ball);
 
@@ -187,7 +188,7 @@ class Game {
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
         // Chargement des briques
-        this.loadBricks(this.levels.data[0]);
+        this.loadBricks(this.levels.data[4]);
 
     }
 
