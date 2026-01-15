@@ -13,6 +13,18 @@ export default class Brik extends GameObject
     }
 
     draw() {
+        //? Si la brique est incassable, on dessine l'image directement sans découpage
+        if (this.type === -1) {
+            theGame.ctx.drawImage(
+                this.image,
+                this.position.x,
+                this.position.y,
+                this.size.width,
+                this.size.height
+            );
+            return; // On arrête ici pour ne pas exécuter le code de découpage
+        }
+
         const sourceX = (this.size.width * this.type) - this.size.width;
         const sourceY = (this.size.height * this.strength) - this.size.height;
         theGame.ctx.drawImage(
@@ -24,6 +36,7 @@ export default class Brik extends GameObject
             this.position.x,
             this.position.y,
             this.size.width,
-            this.size.height)
+            this.size.height
+        );
     }
 }

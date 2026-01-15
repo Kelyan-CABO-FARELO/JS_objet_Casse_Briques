@@ -8,6 +8,7 @@ import ballImgSrc from '../assets/img/ball.png';
 import paddleImgSrc from '../assets/img/paddle.png';
 import brickImgSrc from '../assets/img/brick.png';
 import edgeImgSrc from '../assets/img/edge.png';
+import incassableBrickImgSrc from '../assets/img/brick-1.png';
 // Import des classes
 import Ball from "./Ball";
 import GameObject from "./GameObject";
@@ -41,7 +42,7 @@ class Game {
     ctx;
 
     images = {
-        ball: null, paddle: null, brick: null, edge: null
+        ball: null, paddle: null, brick: null, edge: null, unbreakableBrick: null
     };
     state = {
         balls: [],
@@ -73,7 +74,6 @@ class Game {
         const elH1 = document.createElement('h1');
         elH1.textContent = 'Casse Brique !️';
 
-        // Création d'un conteneur pour le score pour un meilleur style
         const scoreContainer = document.createElement('div');
         scoreContainer.textContent = 'Score: ';
         this.spanScore = document.createElement('span');
@@ -85,35 +85,42 @@ class Game {
         elCanvas.height = this.config.canvasSize.height;
 
         document.body.append(elH1, scoreContainer, elCanvas);
-
         this.ctx = elCanvas.getContext('2d');
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
         document.addEventListener('keyup', this.handlerKeyboard.bind(this, false));
     }
 
-    // Méthode pour mettre à jour le score
     updateScore(points) {
         this.score += points;
         this.spanScore.textContent = this.score;
     }
 
     initImages() {
+        // Chargement de l'image de la balle
         const imgBall = new Image();
         imgBall.src = ballImgSrc;
         this.images.ball = imgBall;
 
+        // Chargement de l'image du paddle
         const imgPaddle = new Image();
         imgPaddle.src = paddleImgSrc;
         this.images.paddle = imgPaddle;
 
+        // Chargement de l'image de la brique
         const imgBrik = new Image();
         imgBrik.src = brickImgSrc;
         this.images.brick = imgBrik;
 
+        // Chargement de l'image des bords
         const imgEdge = new Image();
         imgEdge.src = edgeImgSrc;
         this.images.edge = imgEdge;
+
+        // Chargement de l'image de la brique incassable
+        const imgUnbreakableBrick = new Image();
+        imgUnbreakableBrick.src = incassableBrickImgSrc;
+        this.images.unbreakableBrick = imgUnbreakableBrick;
     }
 
     initGameObjects() {
@@ -149,7 +156,7 @@ class Game {
 
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
-            console.log("VOUS AVEZ GAGNÉ !");
+            const elH1 = document.querySelector('h1');
             elH1.textContent = `Victoire ! Score final : ${this.score}`;
             return;
         }
@@ -172,7 +179,16 @@ class Game {
                 let brickType = levelArray[line][column];
                 if (brickType === 0) continue;
 
-                const brik = new Brik(this.images.brick, 50, 25, brickType);
+                let brik;
+                //? Si la brique est incassable
+                if (brickType === -1) {
+                    brik = new Brik(this.images.unbreakableBrick, 50, 25, brickType);
+                }
+                //? Sinon, c'est une brique normale
+                else {
+                    brik = new Brik(this.images.brick, 50, 25, brickType);
+                }
+                
                 brik.setPosition(20 + (50 * column), 20 + (25 * line));
                 this.state.bricks.push(brik);
             }
@@ -223,13 +239,16 @@ class Game {
             this.state.bricks.forEach(theBrick => {
                 const collisionType = theBall.getCollisionType(theBrick);
                 if (collisionType !== CollisionType.NONE) {
+                    // La balle rebondit dans tous les cas
                     if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                     else theBall.reverseOrientationY();
-                    theBrick.strength --;
 
-                    // Utilisation de la nouvelle méthode
-                    if (theBrick.strength === 0) {
-                        this.updateScore(theBrick.type);
+                    //! MAIS on ne diminue la force et n'ajoute un score QUE si la brique n'est PAS incassable
+                    if (theBrick.type !== -1) {
+                        theBrick.strength--;
+                        if (theBrick.strength === 0) {
+                            this.updateScore(theBrick.type);
+                        }
                     }
                 }
             });
@@ -252,9 +271,13 @@ class Game {
 
     updateObjects() {
         this.state.balls.forEach(theBall => theBall.update());
-        this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0);
+        
+        // On ne retire du state que les briques CASSABLES qui sont détruites
+        this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
 
-        if (this.state.bricks.length === 0) {
+        // On vérifie s'il reste des briques CASSABLES
+        const breakableBricks = this.state.bricks.filter(brick => brick.type !== -1);
+        if (breakableBricks.length === 0) {
             this.currentLevelIndex++;
             this.loadLevel(this.currentLevelIndex);
         }
@@ -274,13 +297,12 @@ class Game {
         this.updateObjects();
         this.renderObjects();
 
-        if (this.state.balls.length <= 0 && this.state.bricks.length > 0) {
+        if (this.state.balls.length <= 0 && this.state.bricks.filter(b => b.type !== -1).length > 0) {
             console.log("Kaboooooooom !!!");
-            // Idéalement, afficher un écran de Game Over ici
             return;
         }
         
-        if(this.levels.data[this.currentLevelIndex] || this.state.bricks.length > 0) {
+        if(this.levels.data[this.currentLevelIndex] || this.state.bricks.filter(b => b.type !== -1).length > 0) {
             requestAnimationFrame(this.loop.bind(this));
         }
     }
