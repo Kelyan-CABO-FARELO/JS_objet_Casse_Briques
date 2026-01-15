@@ -9,6 +9,7 @@ import paddleImgSrc from '../assets/img/paddle.png';
 import brickImgSrc from '../assets/img/brick.png';
 import edgeImgSrc from '../assets/img/edge.png';
 import incassableBrickImgSrc from '../assets/img/brick-1.png';
+import superBrickImgSrc from '../assets/img/brickS.png';
 // Import des classes
 import Ball from "./Ball";
 import GameObject from "./GameObject";
@@ -42,7 +43,7 @@ class Game {
     ctx;
 
     images = {
-        ball: null, paddle: null, brick: null, edge: null, unbreakableBrick: null
+        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null
     };
     state = {
         balls: [],
@@ -118,9 +119,14 @@ class Game {
         this.images.edge = imgEdge;
 
         // Chargement de l'image de la brique incassable
-        const imgUnbreakableBrick = new Image();
-        imgUnbreakableBrick.src = incassableBrickImgSrc;
-        this.images.unbreakableBrick = imgUnbreakableBrick;
+        const imgIncassableBrick = new Image();
+        imgIncassableBrick.src = incassableBrickImgSrc;
+        this.images.incassableBrick = imgIncassableBrick;
+
+        // Chargement de l'image de la super brique
+        const imgSuperBrick = new Image();
+        imgSuperBrick.src = superBrickImgSrc;
+        this.images.superBrick = imgSuperBrick; // CORRECTION ICI
     }
 
     initGameObjects() {
@@ -182,9 +188,15 @@ class Game {
                 let brik;
                 //? Si la brique est incassable
                 if (brickType === -1) {
-                    brik = new Brik(this.images.unbreakableBrick, 50, 25, brickType);
+                    brik = new Brik(this.images.incassableBrick, 50, 25, brickType);
                 }
-                //? Sinon, c'est une brique normale
+
+                //? Sinon si la brique est une super brique
+                else if(brickType === 'S'){
+                    brik = new Brik(this.images.superBrick, 50, 25, brickType);
+                }
+
+                //? Sinon c'est une brique normale
                 else {
                     brik = new Brik(this.images.brick, 50, 25, brickType);
                 }
@@ -243,12 +255,19 @@ class Game {
                     if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                     else theBall.reverseOrientationY();
 
-                    //! MAIS on ne diminue la force et n'ajoute un score QUE si la brique n'est PAS incassable
+                    //! MAIS on ne diminue pas la force et n'ajoute un score QUE si la brique n'est PAS incassable
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
-                        if (theBrick.strength === 0) {
+                        //? Si la brique est cassable ET pas une super brique => ajouté des points
+                        if (theBrick.strength === 0 && theBrick.type !== 'S') {
                             this.updateScore(theBrick.type);
                         }
+                    }
+
+                    //? Si la brique est une super brique => faire descendre un bonus
+                    if(theBrick.type === 'S'){
+                        console.log("SUPER BRIQUE")
+                        //TODO: faire descendre un bonus ou malus aléatoirement
                     }
                 }
             });
@@ -276,8 +295,8 @@ class Game {
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
 
         // On vérifie s'il reste des briques CASSABLES
-        const breakableBricks = this.state.bricks.filter(brick => brick.type !== -1);
-        if (breakableBricks.length === 0) {
+        const incassableBricks = this.state.bricks.filter(brick => brick.type !== -1);
+        if (incassableBricks.length === 0) {
             this.currentLevelIndex++;
             this.loadLevel(this.currentLevelIndex);
         }
