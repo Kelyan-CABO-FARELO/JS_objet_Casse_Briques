@@ -10,6 +10,7 @@ import brickImgSrc from '../assets/img/brick.png';
 import edgeImgSrc from '../assets/img/edge.png';
 import incassableBrickImgSrc from '../assets/img/brick-1.png';
 import superBrickImgSrc from '../assets/img/brickS.png';
+
 // Import des classes
 import Ball from "./Ball";
 import GameObject from "./GameObject";
@@ -17,6 +18,7 @@ import CollisionType from "./DataType/CollisionType";
 import Paddle from "./Paddle";
 import Brik from "./Brik";
 import Edge from "./Edge";
+import Bonus, {BonusType} from "./Bonus";
 
 class Game {
 
@@ -43,11 +45,12 @@ class Game {
     ctx;
 
     images = {
-        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null
+        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null, bonus: null
     };
     state = {
         balls: [],
         bricks: [],
+        bonuses: [],
         deathEdge: null,
         bouncingEdges: [],
         paddle: null,
@@ -126,7 +129,12 @@ class Game {
         // Chargement de l'image de la super brique
         const imgSuperBrick = new Image();
         imgSuperBrick.src = superBrickImgSrc;
-        this.images.superBrick = imgSuperBrick; // CORRECTION ICI
+        this.images.superBrick = imgSuperBrick;
+
+        // Chargement de l'image du bonus (on utilise l'image de la super brique pour l'instant)
+        const imgBonus = new Image();
+        imgBonus.src = superBrickImgSrc;
+        this.images.bonus = imgBonus;
     }
 
     initGameObjects() {
@@ -159,6 +167,7 @@ class Game {
     loadLevel(levelIndex) {
         this.state.bricks = [];
         this.state.balls = [];
+        this.state.bonuses = [];
 
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
@@ -262,12 +271,17 @@ class Game {
                         if (theBrick.strength === 0 && theBrick.type !== 'S') {
                             this.updateScore(theBrick.type);
                         }
-                    }
-
-                    //? Si la brique est une super brique => faire descendre un bonus
-                    if(theBrick.type === 'S'){
-                        console.log("SUPER BRIQUE")
-                        //TODO: faire descendre un bonus ou malus aléatoirement
+                        
+                        //? Si la brique est une super brique et qu'elle est cassée => faire descendre un bonus
+                        if(theBrick.type === 'S' && theBrick.strength === 0){
+                            console.log("SUPER BRIQUE CASSÉE");
+                            const bonusTypes = Object.values(BonusType);
+                            const randomType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
+                            
+                            // On suppose que le sprite sheet a 4 frames pour l'instant
+                            const bonus = new Bonus(this.images.bonus, theBrick.position.x, theBrick.position.y, randomType, 4);
+                            this.state.bonuses.push(bonus);
+                        }
                     }
                 }
             });
@@ -286,10 +300,40 @@ class Game {
             }
         });
         this.state.balls = savedBalls;
+
+        // Collisions Bonus / Paddle
+        this.state.bonuses.forEach(bonus => {
+            if (bonus.getCollisionType(this.state.paddle) !== CollisionType.NONE) {
+                this.activateBonus(bonus);
+                bonus.toRemove = true;
+            } else if (bonus.getCollisionType(this.state.deathEdge) !== CollisionType.NONE) {
+                bonus.toRemove = true;
+            }
+        });
+    }
+
+    activateBonus(bonus) {
+        console.log("Bonus activé : " + bonus.type);
+        switch (bonus.type) {
+            case BonusType.PADDLE_WIDER:
+                this.state.paddle.size.width += 20;
+                break;
+            case BonusType.PADDLE_NARROWER:
+                this.state.paddle.size.width = Math.max(20, this.state.paddle.size.width - 20);
+                break;
+            case BonusType.BALL_FAST:
+                this.state.balls.forEach(ball => ball.speed += 2);
+                break;
+            case BonusType.BALL_SLOW:
+                this.state.balls.forEach(ball => ball.speed = Math.max(2, ball.speed - 2));
+                break;
+        }
     }
 
     updateObjects() {
         this.state.balls.forEach(theBall => theBall.update());
+        this.state.bonuses.forEach(bonus => bonus.update());
+        this.state.bonuses = this.state.bonuses.filter(bonus => !bonus.toRemove);
         
         // On ne retire du state que les briques CASSABLES qui sont détruites
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
@@ -308,6 +352,7 @@ class Game {
         this.state.bricks.forEach(theBrick => theBrick.draw());
         this.state.paddle.draw();
         this.state.balls.forEach(theBall => theBall.draw());
+        this.state.bonuses.forEach(bonus => bonus.draw());
     }
 
     loop() {
