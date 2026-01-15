@@ -25,12 +25,7 @@ class Game {
         },
         ball: {
             radius: 10,
-            orientation: 45,
             speed: 8,
-            position: {
-                x: 400,
-                y: 300
-            },
             angleAlteration: 30
         },
         paddleSize: {
@@ -40,7 +35,9 @@ class Game {
     }
 
     levels;
-    currentLevelIndex = 0; // NOUVEAU: Pour suivre le niveau actuel
+    score = 0;
+    spanScore;
+    currentLevelIndex = 0;
     ctx;
 
     images = {
@@ -68,23 +65,37 @@ class Game {
         console.log('Jeu démarré ...');
         this.initHtmlUI();
         this.initImages();
-        this.initGameObjects(); // Initialisation complète la première fois
+        this.initGameObjects();
         requestAnimationFrame(this.loop.bind(this));
     }
 
     initHtmlUI() {
         const elH1 = document.createElement('h1');
         elH1.textContent = 'Casse Brique !️';
-        document.body.append(elH1);
+
+        // Création d'un conteneur pour le score pour un meilleur style
+        const scoreContainer = document.createElement('div');
+        scoreContainer.textContent = 'Score: ';
+        this.spanScore = document.createElement('span');
+        this.spanScore.textContent = this.score;
+        scoreContainer.appendChild(this.spanScore);
 
         const elCanvas = document.createElement('canvas');
         elCanvas.width = this.config.canvasSize.width;
         elCanvas.height = this.config.canvasSize.height;
-        document.body.append(elCanvas);
+
+        document.body.append(elH1, scoreContainer, elCanvas);
+
         this.ctx = elCanvas.getContext('2d');
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
         document.addEventListener('keyup', this.handlerKeyboard.bind(this, false));
+    }
+
+    // Méthode pour mettre à jour le score
+    updateScore(points) {
+        this.score += points;
+        this.spanScore.textContent = this.score;
     }
 
     initImages() {
@@ -105,9 +116,7 @@ class Game {
         this.images.edge = imgEdge;
     }
 
-    // MODIFIÉ: Ne crée que les objets persistants et charge le premier niveau
     initGameObjects() {
-        // Paddle
         const paddle = new Paddle(
             this.images.paddle,
             this.config.paddleSize.width,
@@ -117,12 +126,10 @@ class Game {
             this.config.canvasSize.height - this.config.paddleSize.height - 20);
         this.state.paddle = paddle;
 
-        // Bordure de la mort
         const deathEdge = new GameObject(this.images.edge, this.config.canvasSize.width, 20);
         deathEdge.setPosition(0, this.config.canvasSize.height + 30);
         this.state.deathEdge = deathEdge;
 
-        // Bordures à rebond (celles-ci ne changent jamais)
         const edgeTop = new Edge(this.images.edge, this.config.canvasSize.width, 20);
         edgeTop.setPosition(0, 0);
         const edgeRight = new Edge(this.images.edge, 20, this.config.canvasSize.height + 10);
@@ -133,26 +140,21 @@ class Game {
         edgeLeft.tag = 'LeftEdge'
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
-        // Chargement du premier niveau
         this.loadLevel(this.currentLevelIndex);
     }
 
-    //Fonction pour charger un niveau
     loadLevel(levelIndex) {
-        // Vide les briques et la balle actuelles
         this.state.bricks = [];
         this.state.balls = [];
 
-        // Charge les briques du niveau
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
             console.log("VOUS AVEZ GAGNÉ !");
-            //TODO: Afficher un écran de victoire ici
-            return; // Arrête le jeu
+            elH1.textContent = `Victoire ! Score final : ${this.score}`;
+            return;
         }
         this.loadBricks(levelData);
 
-        // Crée une nouvelle balle au-dessus du paddle
         const paddle = this.state.paddle;
         const randomAngle = Math.floor(Math.random() * 120) + 31;
         const ballDiameter = this.config.ball.radius * 2;
@@ -214,10 +216,8 @@ class Game {
 
             this.state.bouncingEdges.forEach(theEdge => {
                 const collisionType = theBall.getCollisionType(theEdge);
-                switch (collisionType) {
-                    case CollisionType.HORIZONTAL: theBall.reverseOrientationX(); break;
-                    case CollisionType.VERTICAL: theBall.reverseOrientationY(); break;
-                }
+                if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
+                else if (collisionType === CollisionType.VERTICAL) theBall.reverseOrientationY();
             });
 
             this.state.bricks.forEach(theBrick => {
@@ -225,7 +225,12 @@ class Game {
                 if (collisionType !== CollisionType.NONE) {
                     if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                     else theBall.reverseOrientationY();
-                    theBrick.strength--;
+                    theBrick.strength --;
+
+                    // Utilisation de la nouvelle méthode
+                    if (theBrick.strength === 0) {
+                        this.updateScore(theBrick.type);
+                    }
                 }
             });
 
@@ -249,7 +254,6 @@ class Game {
         this.state.balls.forEach(theBall => theBall.update());
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0);
 
-        // NOUVEAU: Vérification de la condition de victoire du niveau
         if (this.state.bricks.length === 0) {
             this.currentLevelIndex++;
             this.loadLevel(this.currentLevelIndex);
@@ -272,10 +276,10 @@ class Game {
 
         if (this.state.balls.length <= 0 && this.state.bricks.length > 0) {
             console.log("Kaboooooooom !!!");
+            // Idéalement, afficher un écran de Game Over ici
             return;
         }
         
-        // Continue la boucle afficher l'écran de victoire
         if(this.levels.data[this.currentLevelIndex] || this.state.bricks.length > 0) {
             requestAnimationFrame(this.loop.bind(this));
         }
