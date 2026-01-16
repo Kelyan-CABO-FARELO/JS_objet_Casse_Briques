@@ -55,6 +55,7 @@ class Game {
         ballPerfor: null
     };
     perforBall = false;
+    stickyBall = false;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -69,7 +70,8 @@ class Game {
         paddle: null,
         userInput: {
             paddleLeft: false,
-            paddleRight: false
+            paddleRight: false,
+            bonusSpace: false
         }
     };
 
@@ -250,13 +252,11 @@ class Game {
                 const collisionType = theBall.getCollisionType(theBrick);
 
                 if (collisionType !== CollisionType.NONE) {
-                    // La balle ne rebondit que si le bonus perforant n'est PAS actif
                     if (!this.perforBall) {
                         if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                         else theBall.reverseOrientationY();
                     }
 
-                    // La logique de destruction de la brique s'applique dans tous les cas de collision
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
                         if (theBrick.strength === 0 && theBrick.type !== 'S') {
@@ -278,13 +278,20 @@ class Game {
 
             const paddleCollisionType = theBall.getCollisionType(this.state.paddle);
             if (paddleCollisionType === CollisionType.VERTICAL) {
-                let alteration = 0;
-                if (this.state.userInput.paddleRight) alteration = -1 * this.config.ball.angleAlteration;
-                else if (this.state.userInput.paddleLeft) alteration = this.config.ball.angleAlteration;
-                theBall.reverseOrientationY(alteration);
+                // Si le stickyBall est actif, on colle la balle
+                if (this.stickyBall) {
+                    theBall.speed = 0;
+                    theBall.isStuck = true;
+                } else {
+                    // Sinon, on la fait rebondir normalement
+                    let alteration = 0;
+                    if (this.state.userInput.paddleRight) alteration = -1 * this.config.ball.angleAlteration;
+                    else if (this.state.userInput.paddleLeft) alteration = this.config.ball.angleAlteration;
+                    theBall.reverseOrientationY(alteration);
 
-                if (theBall.orientation === 0) theBall.orientation = 10;
-                else if (theBall.orientation === 180) theBall.orientation = 170;
+                    if (theBall.orientation === 0) theBall.orientation = 10;
+                    else if (theBall.orientation === 180) theBall.orientation = 170;
+                }
             } else if (paddleCollisionType === CollisionType.HORIZONTAL) {
                 theBall.reverseOrientationX();
             }
@@ -320,9 +327,7 @@ class Game {
                 }
                 break;
             case BonusType.UPPADDLE:
-                if (this.bonusTimers.upPaddle) {
-                    clearTimeout(this.bonusTimers.upPaddle);
-                }
+                if (this.bonusTimers.upPaddle) clearTimeout(this.bonusTimers.upPaddle);
                 this.state.paddle.size.width = 200;
                 this.bonusTimers.upPaddle = setTimeout(() => {
                     this.state.paddle.size.width = this.config.paddleSize.width;
@@ -330,9 +335,7 @@ class Game {
                 }, 10000);
                 break;
             case BonusType.DOWNPADDLE:
-                if (this.bonusTimers.downPaddle) {
-                    clearTimeout(this.bonusTimers.downPaddle);
-                }
+                if (this.bonusTimers.downPaddle) clearTimeout(this.bonusTimers.downPaddle);
                 this.state.paddle.size.width = 100;
                 this.bonusTimers.downPaddle = setTimeout(() => {
                     this.state.paddle.size.width = this.config.paddleSize.width;
@@ -340,9 +343,7 @@ class Game {
                 }, 10000);
                 break;
             case BonusType.PERFORBALL:
-                if (this.bonusTimers.ballPerfor) {
-                    clearTimeout(this.bonusTimers.ballPerfor);
-                }
+                if (this.bonusTimers.ballPerfor) clearTimeout(this.bonusTimers.ballPerfor);
                 this.perforBall = true;
                 this.bonusTimers.ballPerfor = setTimeout(() => {
                     this.perforBall = false;
@@ -350,12 +351,23 @@ class Game {
                 }, 10000);
                 break;
             case BonusType.STICKYBALL:
+                this.stickyBall = true;
+                break;
             case BonusType.LASER:
         }
     }
 
     updateObjects() {
-        this.state.balls.forEach(theBall => theBall.update());
+        this.state.balls.forEach(theBall => {
+            // Si la balle est collée, on met à jour sa position pour qu'elle suive le paddle
+            if (theBall.isStuck) {
+                const paddle = this.state.paddle;
+                theBall.position.x = paddle.position.x + (paddle.size.width / 2) - (theBall.size.width / 2);
+                theBall.position.y = paddle.position.y - theBall.size.height;
+            } else {
+                theBall.update();
+            }
+        });
         this.state.bonus.forEach(bonus => bonus.update());
         this.state.bonus = this.state.bonus.filter(bonus => !bonus.toRemove);
         
@@ -399,6 +411,18 @@ class Game {
         } else if (evt.key === 'Left' || evt.key === 'ArrowLeft') {
             if (isActive && this.state.userInput.paddleRight) this.state.userInput.paddleRight = false;
             this.state.userInput.paddleLeft = isActive;
+        }
+        
+        // Si on appuie sur Espace (et pas quand on relâche)
+        if(isActive && (evt.key === ' ' || evt.key === 'Spacebar')){
+            // On cherche une balle collée pour la relancer
+            this.state.balls.forEach(ball => {
+                if (ball.isStuck) {
+                    ball.speed = this.config.ball.speed; // On lui redonne sa vitesse
+                    ball.isStuck = false; // Elle n'est plus collée
+                    this.stickyBall = false; // On désactive le bonus
+                }
+            });
         }
     }
 }
