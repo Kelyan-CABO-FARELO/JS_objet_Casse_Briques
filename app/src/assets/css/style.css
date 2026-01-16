@@ -34,6 +34,42 @@ canvas {
     box-shadow: 0 0 20px #00FFFF; /* Lueur cyan autour du canvas */
 }
 
+#start-modal{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#div-modal-content{
+    background-color: #1a1a1a;
+    padding: 40px;
+    border-radius: 10px;
+    border: 2px solid #00FFFF;
+    text-align: center;
+}
+
+#title-start-modal{
+    color: #FFFFFF;
+}
+
+#selectorLevel{
+    font-size: 1.2rem;
+    margin: 20px;
+}
+
+#buttonStart{
+    font-size: 1.5rem;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
 /* Animation de balayage de couleur pour le titre */
 @keyframes rainbow-scroll {
     to {

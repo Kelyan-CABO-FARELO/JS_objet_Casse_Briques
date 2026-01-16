@@ -61,6 +61,7 @@ class Game {
     laserMunitions = 0;
     life = 3;
     spanLife;
+    startModal = null;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -88,11 +89,47 @@ class Game {
 
 
     start() {
-        console.log('Jeu démarré ...');
+        console.log('Préparation du jeu et affichage de la modale...');
         this.initHtmlUI();
         this.initImages();
         this.initGameObjects();
-        requestAnimationFrame(this.loop.bind(this));
+        this.renderObjects();
+        this.createStartModal();
+    }
+
+
+    createStartModal() {
+        this.startModal = document.createElement('div');
+        this.startModal.id = 'start-modal';
+
+        const modalContent = document.createElement('div');
+        modalContent.id = 'div-modal-content';
+
+        const title = document.createElement('h1');
+        title.textContent = 'CASSE BRIQUE';
+
+        const levelSelector = document.createElement('select');
+        levelSelector.id = 'selectorLevel';
+        this.levels.data.forEach((level, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = `Niveau ${index + 1}`;
+            levelSelector.appendChild(option);
+        });
+
+        const startButton = document.createElement('button');
+        startButton.id = 'buttonStart'
+        startButton.textContent = 'START';
+        startButton.addEventListener('click', () => {
+            this.currentLevelIndex = parseInt(levelSelector.value, 10);
+            this.loadLevel(this.currentLevelIndex); // On charge le niveau sélectionné
+            document.body.removeChild(this.startModal);
+            requestAnimationFrame(this.loop.bind(this)); // On lance la boucle de jeu
+        });
+
+        modalContent.append(title, levelSelector, startButton);
+        this.startModal.appendChild(modalContent);
+        document.body.appendChild(this.startModal);
     }
 
     initHtmlUI() {
@@ -198,6 +235,7 @@ class Game {
         edgeLeft.tag = 'LeftEdge'
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
+        // On charge le premier niveau par défaut, il sera écrasé par la sélection
         this.loadLevel(this.currentLevelIndex);
     }
 
@@ -436,6 +474,8 @@ class Game {
     }
 
     loop() {
+        if (this.life <= 0) return;
+
         this.checkUserInput();
         this.checkCollisions();
         this.updateObjects();
