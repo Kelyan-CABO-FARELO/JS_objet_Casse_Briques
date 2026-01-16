@@ -49,11 +49,12 @@ class Game {
     spanScore;
     currentLevelIndex = 0;
     ctx;
-    // les timers des bonus
     bonusTimers = {
         upPaddle: null,
-        downPaddle: null
+        downPaddle: null,
+        ballPerfor: null
     };
+    perforBall = false;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -245,12 +246,17 @@ class Game {
                 if (theBrick.strength <= 0 && theBrick.type !== -1) {
                     return;
                 }
-
+                
                 const collisionType = theBall.getCollisionType(theBrick);
-                if (collisionType !== CollisionType.NONE) {
-                    if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
-                    else theBall.reverseOrientationY();
 
+                if (collisionType !== CollisionType.NONE) {
+                    // La balle ne rebondit que si le bonus perforant n'est PAS actif
+                    if (!this.perforBall) {
+                        if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
+                        else theBall.reverseOrientationY();
+                    }
+
+                    // La logique de destruction de la brique s'applique dans tous les cas de collision
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
                         if (theBrick.strength === 0 && theBrick.type !== 'S') {
@@ -314,31 +320,35 @@ class Game {
                 }
                 break;
             case BonusType.UPPADDLE:
-                // Si un timer est déjà en cours, on le supprime pour le réinitialiser
                 if (this.bonusTimers.upPaddle) {
                     clearTimeout(this.bonusTimers.upPaddle);
                 }
-                // On agrandit le paddle
                 this.state.paddle.size.width = 200;
-                // On lance un nouveau timer
                 this.bonusTimers.upPaddle = setTimeout(() => {
-                    // À la fin du timer, on remet la taille par défaut
                     this.state.paddle.size.width = this.config.paddleSize.width;
-                    this.bonusTimers.upPaddle = null; // On nettoie le timer
-                }, 10000); // 10000 ms = 10 secondes
+                    this.bonusTimers.upPaddle = null;
+                }, 10000);
                 break;
             case BonusType.DOWNPADDLE:
                 if (this.bonusTimers.downPaddle) {
                     clearTimeout(this.bonusTimers.downPaddle);
                 }
                 this.state.paddle.size.width = 100;
-                this.bonusTimers.upPaddle = setTimeout(() => {
-                    // À la fin du timer, on remet la taille par défaut
+                this.bonusTimers.downPaddle = setTimeout(() => {
                     this.state.paddle.size.width = this.config.paddleSize.width;
-                    this.bonusTimers.upPaddle = null; // On nettoie le timer
-                }, 10000); // 10000 ms = 10 secondes
+                    this.bonusTimers.downPaddle = null;
+                }, 10000);
                 break;
             case BonusType.PERFORBALL:
+                if (this.bonusTimers.ballPerfor) {
+                    clearTimeout(this.bonusTimers.ballPerfor);
+                }
+                this.perforBall = true;
+                this.bonusTimers.ballPerfor = setTimeout(() => {
+                    this.perforBall = false;
+                    this.bonusTimers.ballPerfor = null;
+                }, 10000);
+                break;
             case BonusType.STICKYBALL:
             case BonusType.LASER:
         }
