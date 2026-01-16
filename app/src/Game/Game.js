@@ -10,6 +10,12 @@ import brickImgSrc from '../assets/img/brick.png';
 import edgeImgSrc from '../assets/img/edge.png';
 import incassableBrickImgSrc from '../assets/img/brick-1.png';
 import superBrickImgSrc from '../assets/img/brickS.png';
+import powerMBImgSrc from '../assets/img/power_MB.png';
+import powerUPImgSrc from '../assets/img/power_UP.png';
+import powerDPImgSrc from '../assets/img/power_DP.png';
+import powerBPImgSrc from '../assets/img/power_BP.png';
+import powerSBImgSrc from '../assets/img/power_SB.png';
+import powerLImgSrc from '../assets/img/power_L.png';
 
 // Import des classes
 import Ball from "./Ball";
@@ -45,12 +51,13 @@ class Game {
     ctx;
 
     images = {
-        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null, bonus: null
+        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
+        bonuses: {}
     };
     state = {
         balls: [],
         bricks: [],
-        bonuses: [],
+        bonus: [],
         deathEdge: null,
         bouncingEdges: [],
         paddle: null,
@@ -101,40 +108,19 @@ class Game {
     }
 
     initImages() {
-        // Chargement de l'image de la balle
-        const imgBall = new Image();
-        imgBall.src = ballImgSrc;
-        this.images.ball = imgBall;
+        this.images.ball = new Image(); this.images.ball.src = ballImgSrc;
+        this.images.paddle = new Image(); this.images.paddle.src = paddleImgSrc;
+        this.images.brick = new Image(); this.images.brick.src = brickImgSrc;
+        this.images.edge = new Image(); this.images.edge.src = edgeImgSrc;
+        this.images.incassableBrick = new Image(); this.images.incassableBrick.src = incassableBrickImgSrc;
+        this.images.superBrick = new Image(); this.images.superBrick.src = superBrickImgSrc;
 
-        // Chargement de l'image du paddle
-        const imgPaddle = new Image();
-        imgPaddle.src = paddleImgSrc;
-        this.images.paddle = imgPaddle;
-
-        // Chargement de l'image de la brique
-        const imgBrik = new Image();
-        imgBrik.src = brickImgSrc;
-        this.images.brick = imgBrik;
-
-        // Chargement de l'image des bords
-        const imgEdge = new Image();
-        imgEdge.src = edgeImgSrc;
-        this.images.edge = imgEdge;
-
-        // Chargement de l'image de la brique incassable
-        const imgIncassableBrick = new Image();
-        imgIncassableBrick.src = incassableBrickImgSrc;
-        this.images.incassableBrick = imgIncassableBrick;
-
-        // Chargement de l'image de la super brique
-        const imgSuperBrick = new Image();
-        imgSuperBrick.src = superBrickImgSrc;
-        this.images.superBrick = imgSuperBrick;
-
-        // Chargement de l'image du bonus (on utilise l'image de la super brique pour l'instant)
-        const imgBonus = new Image();
-        imgBonus.src = superBrickImgSrc;
-        this.images.bonus = imgBonus;
+        this.images.bonuses[BonusType.MULTIBALL] = new Image(); this.images.bonuses[BonusType.MULTIBALL].src = powerMBImgSrc;
+        this.images.bonuses[BonusType.UPPADDLE] = new Image(); this.images.bonuses[BonusType.UPPADDLE].src = powerUPImgSrc;
+        this.images.bonuses[BonusType.DOWNPADDLE] = new Image(); this.images.bonuses[BonusType.DOWNPADDLE].src = powerDPImgSrc;
+        this.images.bonuses[BonusType.PERFORBALL] = new Image(); this.images.bonuses[BonusType.PERFORBALL].src = powerBPImgSrc;
+        this.images.bonuses[BonusType.STICKYBALL] = new Image(); this.images.bonuses[BonusType.STICKYBALL].src = powerSBImgSrc;
+        this.images.bonuses[BonusType.LASER] = new Image(); this.images.bonuses[BonusType.LASER].src = powerLImgSrc;
     }
 
     initGameObjects() {
@@ -167,7 +153,7 @@ class Game {
     loadLevel(levelIndex) {
         this.state.bricks = [];
         this.state.balls = [];
-        this.state.bonuses = [];
+        this.state.bonus = [];
 
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
@@ -195,18 +181,11 @@ class Game {
                 if (brickType === 0) continue;
 
                 let brik;
-                //? Si la brique est incassable
                 if (brickType === -1) {
                     brik = new Brik(this.images.incassableBrick, 50, 25, brickType);
-                }
-
-                //? Sinon si la brique est une super brique
-                else if(brickType === 'S'){
+                } else if(brickType === 'S'){
                     brik = new Brik(this.images.superBrick, 50, 25, brickType);
-                }
-
-                //? Sinon c'est une brique normale
-                else {
+                } else {
                     brik = new Brik(this.images.brick, 50, 25, brickType);
                 }
                 
@@ -258,29 +237,30 @@ class Game {
             });
 
             this.state.bricks.forEach(theBrick => {
+                // CORRECTION: On ignore les briques déjà détruites dans cette frame
+                if (theBrick.strength <= 0 && theBrick.type !== -1) {
+                    return;
+                }
+
                 const collisionType = theBall.getCollisionType(theBrick);
                 if (collisionType !== CollisionType.NONE) {
-                    // La balle rebondit dans tous les cas
                     if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                     else theBall.reverseOrientationY();
 
-                    //! MAIS on ne diminue pas la force et n'ajoute un score QUE si la brique n'est PAS incassable
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
-                        //? Si la brique est cassable ET pas une super brique => ajouté des points
                         if (theBrick.strength === 0 && theBrick.type !== 'S') {
                             this.updateScore(theBrick.type);
                         }
                         
-                        //? Si la brique est une super brique et qu'elle est cassée => faire descendre un bonus
                         if(theBrick.type === 'S' && theBrick.strength === 0){
-                            console.log("SUPER BRIQUE CASSÉE");
                             const bonusTypes = Object.values(BonusType);
                             const randomType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
                             
-                            // On suppose que le sprite sheet a 4 frames pour l'instant
-                            const bonus = new Bonus(this.images.bonus, theBrick.position.x, theBrick.position.y, randomType, 4);
-                            this.state.bonuses.push(bonus);
+                            const bonusImage = this.images.bonuses[randomType];
+                            const newBonus = new Bonus(bonusImage, 50, 25, randomType);
+                            newBonus.setPosition(theBrick.position.x, theBrick.position.y);
+                            this.state.bonus.push(newBonus);
                         }
                     }
                 }
@@ -301,8 +281,7 @@ class Game {
         });
         this.state.balls = savedBalls;
 
-        // Collisions Bonus / Paddle
-        this.state.bonuses.forEach(bonus => {
+        this.state.bonus.forEach(bonus => {
             if (bonus.getCollisionType(this.state.paddle) !== CollisionType.NONE) {
                 this.activateBonus(bonus);
                 bonus.toRemove = true;
@@ -315,32 +294,45 @@ class Game {
     activateBonus(bonus) {
         console.log("Bonus activé : " + bonus.type);
         switch (bonus.type) {
-            case BonusType.PADDLE_WIDER:
-                this.state.paddle.size.width += 20;
+            case BonusType.MULTIBALL:
+                if (this.state.balls.length > 0) {
+                    const motherBall = this.state.balls[0];
+                    const numberOfNewBalls = 5;
+                    const angleSpread = 15;
+
+                    for (let i = 0; i < numberOfNewBalls; i++) {
+                        const newAngle = motherBall.orientation + (i - Math.floor(numberOfNewBalls / 2)) * angleSpread;
+
+                        const newBall = new Ball(
+                            motherBall.image,
+                            motherBall.size.width,
+                            motherBall.size.height,
+                            newAngle,
+                            motherBall.speed
+                        );
+                        newBall.setPosition(motherBall.position.x, motherBall.position.y);
+                        newBall.isCircular = true;
+                        this.state.balls.push(newBall);
+                    }
+                }
                 break;
-            case BonusType.PADDLE_NARROWER:
-                this.state.paddle.size.width = Math.max(20, this.state.paddle.size.width - 20);
-                break;
-            case BonusType.BALL_FAST:
-                this.state.balls.forEach(ball => ball.speed += 2);
-                break;
-            case BonusType.BALL_SLOW:
-                this.state.balls.forEach(ball => ball.speed = Math.max(2, ball.speed - 2));
-                break;
+            case BonusType.UPPADDLE:
+            case BonusType.DOWNPADDLE:
+            case BonusType.PERFORBALL:
+            case BonusType.STICKYBALL:
+            case BonusType.LASER:
         }
     }
 
     updateObjects() {
         this.state.balls.forEach(theBall => theBall.update());
-        this.state.bonuses.forEach(bonus => bonus.update());
-        this.state.bonuses = this.state.bonuses.filter(bonus => !bonus.toRemove);
+        this.state.bonus.forEach(bonus => bonus.update());
+        this.state.bonus = this.state.bonus.filter(bonus => !bonus.toRemove);
         
-        // On ne retire du state que les briques CASSABLES qui sont détruites
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
 
-        // On vérifie s'il reste des briques CASSABLES
-        const incassableBricks = this.state.bricks.filter(brick => brick.type !== -1);
-        if (incassableBricks.length === 0) {
+        const breakableBricks = this.state.bricks.filter(brick => brick.type !== -1);
+        if (breakableBricks.length === 0) {
             this.currentLevelIndex++;
             this.loadLevel(this.currentLevelIndex);
         }
@@ -352,7 +344,7 @@ class Game {
         this.state.bricks.forEach(theBrick => theBrick.draw());
         this.state.paddle.draw();
         this.state.balls.forEach(theBall => theBall.draw());
-        this.state.bonuses.forEach(bonus => bonus.draw());
+        this.state.bonus.forEach(bonus => bonus.draw());
     }
 
     loop() {
