@@ -2,7 +2,7 @@ import MovingObject from "./MovingObject";
 import theGame from "./Game";
 
 export const BonusType = {
-    MULTIBALL: 'MULTIBALL',
+    //MULTIBALL: 'MULTIBALL',
     //UPPADDLE: 'UPPADDLE',
     //DOWNPADDLE: 'DOWNPADDLE',
     //PERFORBALL: 'PERFORBALL',

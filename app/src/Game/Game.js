@@ -39,7 +39,7 @@ class Game {
             angleAlteration: 30
         },
         paddleSize: {
-            width: 800,
+            width: 150,
             height: 20
         }
     }
@@ -49,6 +49,11 @@ class Game {
     spanScore;
     currentLevelIndex = 0;
     ctx;
+    // les timers des bonus
+    bonusTimers = {
+        upPaddle: null,
+        downPaddle: null
+    };
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -237,7 +242,6 @@ class Game {
             });
 
             this.state.bricks.forEach(theBrick => {
-                // CORRECTION: On ignore les briques déjà détruites dans cette frame
                 if (theBrick.strength <= 0 && theBrick.type !== -1) {
                     return;
                 }
@@ -302,14 +306,7 @@ class Game {
 
                     for (let i = 0; i < numberOfNewBalls; i++) {
                         const newAngle = motherBall.orientation + (i - Math.floor(numberOfNewBalls / 2)) * angleSpread;
-
-                        const newBall = new Ball(
-                            motherBall.image,
-                            motherBall.size.width,
-                            motherBall.size.height,
-                            newAngle,
-                            motherBall.speed
-                        );
+                        const newBall = new Ball(motherBall.image, motherBall.size.width, motherBall.size.height, newAngle, motherBall.speed);
                         newBall.setPosition(motherBall.position.x, motherBall.position.y);
                         newBall.isCircular = true;
                         this.state.balls.push(newBall);
@@ -317,7 +314,30 @@ class Game {
                 }
                 break;
             case BonusType.UPPADDLE:
+                // Si un timer est déjà en cours, on le supprime pour le réinitialiser
+                if (this.bonusTimers.upPaddle) {
+                    clearTimeout(this.bonusTimers.upPaddle);
+                }
+                // On agrandit le paddle
+                this.state.paddle.size.width = 200;
+                // On lance un nouveau timer
+                this.bonusTimers.upPaddle = setTimeout(() => {
+                    // À la fin du timer, on remet la taille par défaut
+                    this.state.paddle.size.width = this.config.paddleSize.width;
+                    this.bonusTimers.upPaddle = null; // On nettoie le timer
+                }, 10000); // 10000 ms = 10 secondes
+                break;
             case BonusType.DOWNPADDLE:
+                if (this.bonusTimers.downPaddle) {
+                    clearTimeout(this.bonusTimers.downPaddle);
+                }
+                this.state.paddle.size.width = 100;
+                this.bonusTimers.upPaddle = setTimeout(() => {
+                    // À la fin du timer, on remet la taille par défaut
+                    this.state.paddle.size.width = this.config.paddleSize.width;
+                    this.bonusTimers.upPaddle = null; // On nettoie le timer
+                }, 10000); // 10000 ms = 10 secondes
+                break;
             case BonusType.PERFORBALL:
             case BonusType.STICKYBALL:
             case BonusType.LASER:
@@ -354,7 +374,6 @@ class Game {
         this.renderObjects();
 
         if (this.state.balls.length <= 0 && this.state.bricks.filter(b => b.type !== -1).length > 0) {
-            console.log("Kaboooooooom !!!");
             return;
         }
         
