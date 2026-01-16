@@ -7,7 +7,7 @@ export const BonusType = {
     //DOWNPADDLE: 'DOWNPADDLE',
     //PERFORBALL: 'PERFORBALL',
     //STICKYBALL: 'STICKYBALL',
-    //LASER: 'LASER'
+    LASER: 'LASER'
 };
 
 export default class Bonus extends MovingObject {

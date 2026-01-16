@@ -16,6 +16,7 @@ import powerDPImgSrc from '../assets/img/power_DP.png';
 import powerBPImgSrc from '../assets/img/power_BP.png';
 import powerSBImgSrc from '../assets/img/power_SB.png';
 import powerLImgSrc from '../assets/img/power_L.png';
+import laserImgSrc from '../assets/img/laser.png';
 
 // Import des classes
 import Ball from "./Ball";
@@ -25,6 +26,7 @@ import Paddle from "./Paddle";
 import Brik from "./Brik";
 import Edge from "./Edge";
 import Bonus, {BonusType} from "./Bonus";
+import Laser from "./Laser";
 
 class Game {
 
@@ -56,15 +58,17 @@ class Game {
     };
     perforBall = false;
     stickyBall = false;
+    laserMunitions = 0;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
-        bonuses: {}
+        bonuses: {}, laser: null
     };
     state = {
         balls: [],
         bricks: [],
         bonus: [],
+        lasers: [],
         deathEdge: null,
         bouncingEdges: [],
         paddle: null,
@@ -122,6 +126,7 @@ class Game {
         this.images.edge = new Image(); this.images.edge.src = edgeImgSrc;
         this.images.incassableBrick = new Image(); this.images.incassableBrick.src = incassableBrickImgSrc;
         this.images.superBrick = new Image(); this.images.superBrick.src = superBrickImgSrc;
+        this.images.laser = new Image(); this.images.laser.src = laserImgSrc;
 
         this.images.bonuses[BonusType.MULTIBALL] = new Image(); this.images.bonuses[BonusType.MULTIBALL].src = powerMBImgSrc;
         this.images.bonuses[BonusType.UPPADDLE] = new Image(); this.images.bonuses[BonusType.UPPADDLE].src = powerUPImgSrc;
@@ -162,6 +167,7 @@ class Game {
         this.state.bricks = [];
         this.state.balls = [];
         this.state.bonus = [];
+        this.state.lasers = [];
 
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
@@ -245,9 +251,7 @@ class Game {
             });
 
             this.state.bricks.forEach(theBrick => {
-                if (theBrick.strength <= 0 && theBrick.type !== -1) {
-                    return;
-                }
+                if (theBrick.strength <= 0 && theBrick.type !== -1) return;
                 
                 const collisionType = theBall.getCollisionType(theBrick);
 
@@ -259,9 +263,7 @@ class Game {
 
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
-                        if (theBrick.strength === 0 && theBrick.type !== 'S') {
-                            this.updateScore(theBrick.type);
-                        }
+                        if (theBrick.strength === 0 && theBrick.type !== 'S') this.updateScore(theBrick.type);
                         
                         if(theBrick.type === 'S' && theBrick.strength === 0){
                             const bonusTypes = Object.values(BonusType);
@@ -278,12 +280,10 @@ class Game {
 
             const paddleCollisionType = theBall.getCollisionType(this.state.paddle);
             if (paddleCollisionType === CollisionType.VERTICAL) {
-                // Si le stickyBall est actif, on colle la balle
                 if (this.stickyBall) {
                     theBall.speed = 0;
                     theBall.isStuck = true;
                 } else {
-                    // Sinon, on la fait rebondir normalement
                     let alteration = 0;
                     if (this.state.userInput.paddleRight) alteration = -1 * this.config.ball.angleAlteration;
                     else if (this.state.userInput.paddleLeft) alteration = this.config.ball.angleAlteration;
@@ -304,6 +304,24 @@ class Game {
                 bonus.toRemove = true;
             } else if (bonus.getCollisionType(this.state.deathEdge) !== CollisionType.NONE) {
                 bonus.toRemove = true;
+            }
+        });
+
+        this.state.lasers.forEach(laser => {
+            this.state.bricks.forEach(brick => {
+                if (brick.strength <= 0) return;
+
+                if (laser.getCollisionType(brick) !== CollisionType.NONE) {
+                    laser.toRemove = true;
+                    if (brick.type !== -1) {
+                        brick.strength--;
+                        if (brick.strength === 0 && brick.type !== 'S') this.updateScore(brick.type);
+                    }
+                }
+            });
+
+            if (laser.position.y < 0) {
+                laser.toRemove = true;
             }
         });
     }
@@ -354,12 +372,13 @@ class Game {
                 this.stickyBall = true;
                 break;
             case BonusType.LASER:
+                this.laserMunitions += 3;
+                break;
         }
     }
 
     updateObjects() {
         this.state.balls.forEach(theBall => {
-            // Si la balle est collée, on met à jour sa position pour qu'elle suive le paddle
             if (theBall.isStuck) {
                 const paddle = this.state.paddle;
                 theBall.position.x = paddle.position.x + (paddle.size.width / 2) - (theBall.size.width / 2);
@@ -369,7 +388,10 @@ class Game {
             }
         });
         this.state.bonus.forEach(bonus => bonus.update());
+        this.state.lasers.forEach(laser => laser.update());
+
         this.state.bonus = this.state.bonus.filter(bonus => !bonus.toRemove);
+        this.state.lasers = this.state.lasers.filter(laser => !laser.toRemove);
         
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
 
@@ -387,6 +409,7 @@ class Game {
         this.state.paddle.draw();
         this.state.balls.forEach(theBall => theBall.draw());
         this.state.bonus.forEach(bonus => bonus.draw());
+        this.state.lasers.forEach(laser => laser.draw());
     }
 
     loop() {
@@ -413,16 +436,26 @@ class Game {
             this.state.userInput.paddleLeft = isActive;
         }
         
-        // Si on appuie sur Espace (et pas quand on relâche)
         if(isActive && (evt.key === ' ' || evt.key === 'Spacebar')){
-            // On cherche une balle collée pour la relancer
+            let ballWasStuck = false;
             this.state.balls.forEach(ball => {
                 if (ball.isStuck) {
-                    ball.speed = this.config.ball.speed; // On lui redonne sa vitesse
-                    ball.isStuck = false; // Elle n'est plus collée
-                    this.stickyBall = false; // On désactive le bonus
+                    ball.speed = this.config.ball.speed;
+                    ball.isStuck = false;
+                    ballWasStuck = true;
                 }
             });
+            if (ballWasStuck) this.stickyBall = false;
+
+            // On tire si on a des munitions
+            else if (this.laserMunitions > 0) {
+                const paddle = this.state.paddle;
+                const laserLeft = new Laser(this.images.laser, paddle.position.x + 10, paddle.position.y);
+                const laserRight = new Laser(this.images.laser, paddle.position.x + paddle.size.width - 20, paddle.position.y);
+                
+                this.state.lasers.push(laserLeft, laserRight);
+                this.laserMunitions--;
+            }
         }
     }
 }
