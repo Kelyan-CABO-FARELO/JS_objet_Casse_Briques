@@ -2,11 +2,11 @@ import MovingObject from "./MovingObject";
 import theGame from "./Game";
 
 export const BonusType = {
-    //MULTIBALL: 'MULTIBALL',
-    //UPPADDLE: 'UPPADDLE',
-    //DOWNPADDLE: 'DOWNPADDLE',
-    //PERFORBALL: 'PERFORBALL',
-    //STICKYBALL: 'STICKYBALL',
+    MULTIBALL: 'MULTIBALL',
+    UPPADDLE: 'UPPADDLE',
+    DOWNPADDLE: 'DOWNPADDLE',
+    PERFORBALL: 'PERFORBALL',
+    STICKYBALL: 'STICKYBALL',
     LASER: 'LASER'
 };
 
@@ -22,8 +22,6 @@ export default class Bonus extends MovingObject {
     }
 
     draw() {
-        // CORRECTION: Utilisation de la bonne signature de drawImage
-        // On dessine l'image entière à la position du bonus
         theGame.ctx.drawImage(
             this.image,
             this.position.x,

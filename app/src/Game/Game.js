@@ -59,6 +59,8 @@ class Game {
     perforBall = false;
     stickyBall = false;
     laserMunitions = 0;
+    life = 3;
+    spanLife;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -102,12 +104,18 @@ class Game {
         this.spanScore = document.createElement('span');
         this.spanScore.textContent = this.score;
         scoreContainer.appendChild(this.spanScore);
+        
+        const elLife = document.createElement('div');
+        elLife.textContent = 'Vie restante: ';
+        this.spanLife = document.createElement('span');
+        this.spanLife.textContent = this.life;
+        elLife.appendChild(this.spanLife);
 
         const elCanvas = document.createElement('canvas');
         elCanvas.width = this.config.canvasSize.width;
         elCanvas.height = this.config.canvasSize.height;
 
-        document.body.append(elH1, scoreContainer, elCanvas);
+        document.body.append(elH1, scoreContainer, elLife, elCanvas);
         this.ctx = elCanvas.getContext('2d');
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
@@ -117,6 +125,36 @@ class Game {
     updateScore(points) {
         this.score += points;
         this.spanScore.textContent = this.score;
+    }
+
+    updateLifeDisplay() {
+        this.spanLife.textContent = this.life;
+    }
+
+    loseLife() {
+        this.life--;
+        this.updateLifeDisplay();
+
+        if (this.life <= 0) {
+            const elH1 = document.querySelector('h1');
+            elH1.textContent = `GAME OVER - Score: ${this.score}`;
+            return;
+        }
+
+        this.resetBall();
+    }
+    
+    resetBall() {
+        this.state.balls = [];
+        const paddle = this.state.paddle;
+        const randomAngle = Math.floor(Math.random() * 120) + 31;
+        const ballDiameter = this.config.ball.radius * 2;
+        const ball = new Ball(this.images.ball, ballDiameter, ballDiameter, randomAngle, this.config.ball.speed);
+        const ballX = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
+        const ballY = paddle.position.y - ball.size.height - 5;
+        ball.setPosition(ballX, ballY);
+        ball.isCircular = true;
+        this.state.balls.push(ball);
     }
 
     initImages() {
@@ -165,7 +203,6 @@ class Game {
 
     loadLevel(levelIndex) {
         this.state.bricks = [];
-        this.state.balls = [];
         this.state.bonus = [];
         this.state.lasers = [];
 
@@ -176,16 +213,7 @@ class Game {
             return;
         }
         this.loadBricks(levelData);
-
-        const paddle = this.state.paddle;
-        const randomAngle = Math.floor(Math.random() * 120) + 31;
-        const ballDiameter = this.config.ball.radius * 2;
-        const ball = new Ball(this.images.ball, ballDiameter, ballDiameter, randomAngle, this.config.ball.speed);
-        const ballX = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
-        const ballY = paddle.position.y - ball.size.height - 5;
-        ball.setPosition(ballX, ballY);
-        ball.isCircular = true;
-        this.state.balls.push(ball);
+        this.resetBall();
     }
 
     loadBricks(levelArray) {
@@ -237,13 +265,9 @@ class Game {
     }
 
     checkCollisions() {
-        const savedBalls = [];
-        this.state.balls.forEach(theBall => {
-            if (theBall.getCollisionType(this.state.deathEdge) !== CollisionType.NONE) {
-                return;
-            }
-            savedBalls.push(theBall);
+        this.state.balls = this.state.balls.filter(theBall => theBall.getCollisionType(this.state.deathEdge) === CollisionType.NONE);
 
+        this.state.balls.forEach(theBall => {
             this.state.bouncingEdges.forEach(theEdge => {
                 const collisionType = theBall.getCollisionType(theEdge);
                 if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
@@ -296,7 +320,6 @@ class Game {
                 theBall.reverseOrientationX();
             }
         });
-        this.state.balls = savedBalls;
 
         this.state.bonus.forEach(bonus => {
             if (bonus.getCollisionType(this.state.paddle) !== CollisionType.NONE) {
@@ -418,11 +441,11 @@ class Game {
         this.updateObjects();
         this.renderObjects();
 
-        if (this.state.balls.length <= 0 && this.state.bricks.filter(b => b.type !== -1).length > 0) {
-            return;
+        if (this.state.balls.length <= 0) {
+            this.loseLife();
         }
         
-        if(this.levels.data[this.currentLevelIndex] || this.state.bricks.filter(b => b.type !== -1).length > 0) {
+        if (this.life > 0) {
             requestAnimationFrame(this.loop.bind(this));
         }
     }
@@ -447,7 +470,6 @@ class Game {
             });
             if (ballWasStuck) this.stickyBall = false;
 
-            // On tire si on a des munitions
             else if (this.laserMunitions > 0) {
                 const paddle = this.state.paddle;
                 const laserLeft = new Laser(this.images.laser, paddle.position.x + 10, paddle.position.y);
