@@ -56,12 +56,20 @@ class Game {
         downPaddle: null,
         ballPerfor: null
     };
-    perforBall = true;
+    perforBall = false;
     stickyBall = false;
     laserMunitions = 0;
     life = 3;
     spanLife;
+    spanPlayer;
     startModal = null;
+    onePlayer = false;
+    twoPlayer = false;
+    currentPlayerId = 1;
+    players = {
+        1: { score: 0, life: 3, levelIndex: 0, bricks: null },
+        2: { score: 0, life: 3, levelIndex: 0, bricks: null }
+    };
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -118,23 +126,57 @@ class Game {
         });
 
         const startButton = document.createElement('button');
-        startButton.id = 'buttonStart'
-        startButton.textContent = 'START';
+        startButton.id = 'buttonStart';
+        startButton.textContent = '1 Joueur';
         startButton.addEventListener('click', () => {
-            this.currentLevelIndex = parseInt(levelSelector.value, 10);
-            this.loadLevel(this.currentLevelIndex); // On charge le niveau sélectionné
-            document.body.removeChild(this.startModal);
-            requestAnimationFrame(this.loop.bind(this)); // On lance la boucle de jeu
+            this.onePlayer = true;
+            this.twoPlayer = false;
+            this.startGame(parseInt(levelSelector.value, 10));
         });
 
-        modalContent.append(title, levelSelector, startButton);
+        const button2Players = document.createElement('button');
+        button2Players.id = 'button2Players';
+        button2Players.textContent = '2 Joueurs';
+        button2Players.addEventListener('click', () => {
+            this.twoPlayer = true;
+            this.onePlayer = false;
+            this.startGame(parseInt(levelSelector.value, 10));
+        });
+
+
+        modalContent.append(title, levelSelector, startButton, button2Players);
         this.startModal.appendChild(modalContent);
         document.body.appendChild(this.startModal);
+    }
+
+    startGame(levelIndex) {
+        this.currentLevelIndex = levelIndex;
+        this.currentPlayerId = 1;
+        
+        // Initialisation des joueurs
+        this.players[1] = { score: 0, life: 3, levelIndex: levelIndex, bricks: null };
+        this.players[2] = { score: 0, life: 3, levelIndex: levelIndex, bricks: null };
+        
+        this.score = 0;
+        this.life = 3;
+        this.updateScore(0);
+        this.updateLifeDisplay();
+        this.updatePlayerDisplay();
+
+        this.loadLevel(this.currentLevelIndex);
+        document.body.removeChild(this.startModal);
+        requestAnimationFrame(this.loop.bind(this));
     }
 
     initHtmlUI() {
         const elH1 = document.createElement('h1');
         elH1.textContent = 'Casse Brique !️';
+
+        const infoContainer = document.createElement('div');
+        infoContainer.style.display = 'flex';
+        infoContainer.style.justifyContent = 'space-around';
+        infoContainer.style.width = '100%';
+        infoContainer.style.maxWidth = '800px';
 
         const scoreContainer = document.createElement('div');
         scoreContainer.textContent = 'Score: ';
@@ -148,11 +190,19 @@ class Game {
         this.spanLife.textContent = this.life;
         elLife.appendChild(this.spanLife);
 
+        const elPlayer = document.createElement('div');
+        elPlayer.textContent = 'Joueur: ';
+        this.spanPlayer = document.createElement('span');
+        this.spanPlayer.textContent = '1';
+        elPlayer.appendChild(this.spanPlayer);
+
+        infoContainer.append(elPlayer, scoreContainer, elLife);
+
         const elCanvas = document.createElement('canvas');
         elCanvas.width = this.config.canvasSize.width;
         elCanvas.height = this.config.canvasSize.height;
 
-        document.body.append(elH1, scoreContainer, elLife, elCanvas);
+        document.body.append(elH1, infoContainer, elCanvas);
         this.ctx = elCanvas.getContext('2d');
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
@@ -168,17 +218,79 @@ class Game {
         this.spanLife.textContent = this.life;
     }
 
+    updatePlayerDisplay() {
+        if (this.twoPlayer) {
+            this.spanPlayer.textContent = this.currentPlayerId;
+        } else {
+            this.spanPlayer.textContent = '1';
+        }
+    }
+
     loseLife() {
         this.life--;
         this.updateLifeDisplay();
 
+        if (this.twoPlayer) {
+            const otherPlayerId = this.currentPlayerId === 1 ? 2 : 1;
+            // Si l'autre joueur est encore en vie, on change de tour
+            if (this.players[otherPlayerId].life > 0) {
+                this.switchTurn();
+                return;
+            }
+        }
+
         if (this.life <= 0) {
             const elH1 = document.querySelector('h1');
-            elH1.textContent = `GAME OVER - Score: ${this.score}`;
+            if (this.twoPlayer) {
+                // Sauvegarde du score final du joueur courant avant affichage
+                this.players[this.currentPlayerId].score = this.score;
+                elH1.textContent = `GAME OVER - P1: ${this.players[1].score} - P2: ${this.players[2].score}`;
+            } else {
+                elH1.textContent = `GAME OVER - Score: ${this.score}`;
+            }
             return;
         }
 
         this.resetBall();
+    }
+
+    switchTurn() {
+        // Sauvegarde de l'état du joueur actuel
+        this.players[this.currentPlayerId].score = this.score;
+        this.players[this.currentPlayerId].life = this.life;
+        this.players[this.currentPlayerId].levelIndex = this.currentLevelIndex;
+        this.players[this.currentPlayerId].bricks = this.state.bricks;
+
+        // Changement de joueur
+        this.currentPlayerId = this.currentPlayerId === 1 ? 2 : 1;
+        
+        // Restauration de l'état du nouveau joueur
+        this.score = this.players[this.currentPlayerId].score;
+        this.life = this.players[this.currentPlayerId].life;
+        this.currentLevelIndex = this.players[this.currentPlayerId].levelIndex;
+        
+        this.updateScore(0); // Met à jour l'affichage
+        this.updateLifeDisplay();
+        this.updatePlayerDisplay();
+
+        // Réinitialisation des bonus et balles
+        this.state.bonus = [];
+        this.state.lasers = [];
+        this.state.balls = [];
+        this.perforBall = false;
+        this.stickyBall = false;
+        this.laserMunitions = 0;
+        
+        // Restauration des briques ou chargement du niveau
+        if (this.players[this.currentPlayerId].bricks) {
+            this.state.bricks = this.players[this.currentPlayerId].bricks;
+            this.resetBall();
+        } else {
+            this.loadLevel(this.currentLevelIndex);
+        }
+        
+        // Affichage d'un message de changement de tour (optionnel mais sympa)
+        console.log(`Tour du Joueur ${this.currentPlayerId}`);
     }
     
     resetBall() {
@@ -247,7 +359,12 @@ class Game {
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
             const elH1 = document.querySelector('h1');
-            elH1.textContent = `Victoire ! Score final : ${this.score}`;
+            if (this.twoPlayer) {
+                this.players[this.currentPlayerId].score = this.score;
+                elH1.textContent = `Victoire ! P1: ${this.players[1].score} - P2: ${this.players[2].score}`;
+            } else {
+                elH1.textContent = `Victoire ! Score final : ${this.score}`;
+            }
             return;
         }
         this.loadBricks(levelData);
@@ -318,9 +435,9 @@ class Game {
                 const collisionType = theBall.getCollisionType(theBrick);
 
                 if (collisionType !== CollisionType.NONE) {
-                    //? Si la balle n'est pas perforante, elle rebondit
-                    //? Si la balle est perforante, elle ne rebondit PAS sur les briques cassables
-                    //! MAIS elle doit rebondir sur les briques incassables
+                    // Si la balle n'est pas perforante, elle rebondit
+                    // Si la balle est perforante, elle ne rebondit PAS sur les briques cassables
+                    // MAIS elle doit rebondir sur les briques incassables
                     if (!this.perforBall || theBrick.type === -1) {
                         if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                         else theBall.reverseOrientationY();
