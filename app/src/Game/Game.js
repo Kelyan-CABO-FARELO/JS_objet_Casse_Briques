@@ -56,7 +56,7 @@ class Game {
         downPaddle: null,
         ballPerfor: null
     };
-    perforBall = false;
+    perforBall = true;
     stickyBall = false;
     laserMunitions = 0;
     life = 3;
@@ -318,7 +318,10 @@ class Game {
                 const collisionType = theBall.getCollisionType(theBrick);
 
                 if (collisionType !== CollisionType.NONE) {
-                    if (!this.perforBall) {
+                    //? Si la balle n'est pas perforante, elle rebondit
+                    //? Si la balle est perforante, elle ne rebondit PAS sur les briques cassables
+                    //! MAIS elle doit rebondir sur les briques incassables
+                    if (!this.perforBall || theBrick.type === -1) {
                         if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                         else theBall.reverseOrientationY();
                     }

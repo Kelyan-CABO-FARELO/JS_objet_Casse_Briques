@@ -2,12 +2,12 @@ import MovingObject from "./MovingObject";
 import theGame from "./Game";
 
 export const BonusType = {
-    MULTIBALL: 'MULTIBALL',
-    UPPADDLE: 'UPPADDLE',
-    DOWNPADDLE: 'DOWNPADDLE',
+    //MULTIBALL: 'MULTIBALL',
+    //UPPADDLE: 'UPPADDLE',
+    //DOWNPADDLE: 'DOWNPADDLE',
     PERFORBALL: 'PERFORBALL',
-    STICKYBALL: 'STICKYBALL',
-    LASER: 'LASER'
+    //STICKYBALL: 'STICKYBALL',
+    //LASER: 'LASER'
 };
 
 export default class Bonus extends MovingObject {
