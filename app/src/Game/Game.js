@@ -17,6 +17,7 @@ import powerBPImgSrc from '../assets/img/power_BP.png';
 import powerSBImgSrc from '../assets/img/power_SB.png';
 import powerLImgSrc from '../assets/img/power_L.png';
 import laserImgSrc from '../assets/img/laser.png';
+import x2ImgSrc from '../assets/img/power_X2.png';
 
 // Import des classes
 import Ball from "./Ball";
@@ -58,6 +59,7 @@ class Game {
 
     levels;
     score = 0;
+    x2 = false;
     spanScore;
     currentLevelIndex = 0;
     ctx;
@@ -83,7 +85,7 @@ class Game {
     gameState = GameState.MENU;
     countdownText = null;
 
-    // NOUVEAU: Grille pour l'éditeur
+    // Grille pour l'éditeur
     editorGrid = [];
 
     images = {
@@ -437,7 +439,13 @@ class Game {
     }
 
     updateScore(points) {
-        this.score += points;
+        if(this.x2 === true){
+            const multiplicateur = 2;
+            this.score += (points * 100) * multiplicateur;
+            this.spanScore.textContent = this.score;
+            return;
+        }
+        this.score += points * 100;
         this.spanScore.textContent = this.score;
     }
 
@@ -538,6 +546,7 @@ class Game {
         this.images.incassableBrick = new Image(); this.images.incassableBrick.src = incassableBrickImgSrc;
         this.images.superBrick = new Image(); this.images.superBrick.src = superBrickImgSrc;
         this.images.laser = new Image(); this.images.laser.src = laserImgSrc;
+        this.images.x2 = new Image(); this.images.x2.src = x2ImgSrc
 
         this.images.bonuses[BonusType.MULTIBALL] = new Image(); this.images.bonuses[BonusType.MULTIBALL].src = powerMBImgSrc;
         this.images.bonuses[BonusType.UPPADDLE] = new Image(); this.images.bonuses[BonusType.UPPADDLE].src = powerUPImgSrc;
@@ -545,6 +554,7 @@ class Game {
         this.images.bonuses[BonusType.PERFORBALL] = new Image(); this.images.bonuses[BonusType.PERFORBALL].src = powerBPImgSrc;
         this.images.bonuses[BonusType.STICKYBALL] = new Image(); this.images.bonuses[BonusType.STICKYBALL].src = powerSBImgSrc;
         this.images.bonuses[BonusType.LASER] = new Image(); this.images.bonuses[BonusType.LASER].src = powerLImgSrc;
+        this.images.bonuses[BonusType.X2] = new Image(); this.images.bonuses[BonusType.X2].src = x2ImgSrc
     }
 
     initGameObjects() {
@@ -783,6 +793,9 @@ class Game {
                 break;
             case BonusType.LASER:
                 this.laserMunitions += 3;
+                break;
+            case BonusType.X2:
+                this.x2 = true;
                 break;
         }
     }
