@@ -28,6 +28,16 @@ import Edge from "./Edge";
 import Bonus, {BonusType} from "./Bonus";
 import Laser from "./Laser";
 
+const GameState = {
+    MENU: 'MENU',
+    COUNTDOWN: 'COUNTDOWN',
+    PLAYING: 'PLAYING',
+    PAUSED: 'PAUSED',
+    EDITOR: 'EDITOR',
+    GAME_OVER: 'GAME_OVER',
+    VICTORY: 'VICTORY'
+};
+
 class Game {
 
     config = {
@@ -70,7 +80,7 @@ class Game {
         1: { score: 0, life: 3, levelIndex: 0, bricks: null },
         2: { score: 0, life: 3, levelIndex: 0, bricks: null }
     };
-    isPaused = true;
+    gameState = GameState.MENU;
     countdownText = null;
 
     images = {
@@ -99,11 +109,9 @@ class Game {
 
 
     start() {
-        console.log('Préparation du jeu et affichage de la modale...');
         this.initHtmlUI();
         this.initImages();
         this.initGameObjects();
-        this.renderObjects();
         this.createStartModal();
         requestAnimationFrame(this.loop.bind(this));
     }
@@ -152,6 +160,35 @@ class Game {
         document.body.appendChild(this.startModal);
     }
 
+    // NOUVEAU: Modale de fin de partie
+    createEndModal(message) {
+        const endModal = document.createElement('div');
+        endModal.id = 'end-modal';
+
+        const modalContent = document.createElement('div');
+        modalContent.id = 'div-modal-content';
+
+        const title = document.createElement('h1');
+        title.textContent = message;
+
+        const scoreText = document.createElement('p');
+        if (this.twoPlayer) {
+            scoreText.textContent = `Score J1: ${this.players[1].score} - Score J2: ${this.players[2].score}`;
+        } else {
+            scoreText.textContent = `Score final: ${this.score}`;
+        }
+
+        const replayButton = document.createElement('button');
+        replayButton.textContent = 'Rejouer';
+        replayButton.addEventListener('click', () => {
+            window.location.reload(); // La manière la plus simple de tout réinitialiser
+        });
+
+        modalContent.append(title, scoreText, replayButton);
+        endModal.appendChild(modalContent);
+        document.body.appendChild(endModal);
+    }
+
     startGame(levelIndex) {
         this.currentLevelIndex = levelIndex;
         this.currentPlayerId = 1;
@@ -171,7 +208,7 @@ class Game {
     }
 
     startCountdown() {
-        this.isPaused = true;
+        this.gameState = GameState.COUNTDOWN;
         this.countdownText = '3';
         setTimeout(() => {
             this.countdownText = '2';
@@ -179,7 +216,7 @@ class Game {
                 this.countdownText = '1';
                 setTimeout(() => {
                     this.countdownText = 'GO!';
-                    this.isPaused = false;
+                    this.gameState = GameState.PLAYING;
                     this.state.balls.forEach(ball => {
                         if (ball.isStuck) {
                             ball.speed = this.config.ball.speed;
@@ -265,14 +302,9 @@ class Game {
         }
 
         if (this.life <= 0) {
-            const elH1 = document.querySelector('h1');
-            if (this.twoPlayer) {
-                this.players[this.currentPlayerId].score = this.score;
-                elH1.textContent = `GAME OVER - P1: ${this.players[1].score} - P2: ${this.players[2].score}`;
-            } else {
-                elH1.textContent = `GAME OVER - Score: ${this.score}`;
-            }
-            this.isPaused = true;
+            this.gameState = GameState.GAME_OVER;
+            this.players[this.currentPlayerId].score = this.score; // Sauvegarde finale
+            this.createEndModal("GAME OVER");
             return;
         }
 
@@ -381,14 +413,9 @@ class Game {
 
         const levelData = this.levels.data[levelIndex];
         if (!levelData) {
-            const elH1 = document.querySelector('h1');
-            if (this.twoPlayer) {
-                this.players[this.currentPlayerId].score = this.score;
-                elH1.textContent = `Victoire ! P1: ${this.players[1].score} - P2: ${this.players[2].score}`;
-            } else {
-                elH1.textContent = `Victoire ! Score final : ${this.score}`;
-            }
-            this.isPaused = true;
+            this.gameState = GameState.VICTORY;
+            this.players[this.currentPlayerId].score = this.score; // Sauvegarde finale
+            this.createEndModal("VICTOIRE !");
             return;
         }
         this.loadBricks(levelData);
@@ -445,7 +472,6 @@ class Game {
         this.state.balls.forEach(ball => {
             if (ball.isStuck) {
                 ball.position.x = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
-                // Ajout d'un décalage pour que la balle flotte au-dessus pour éviter le bug que l'image de balle soit dans celle du paddle au démarrage
                 ball.position.y = paddle.position.y - ball.size.height - 5;
             }
         });
@@ -626,21 +652,27 @@ class Game {
     }
 
     loop() {
-        if (this.life <= 0) return;
-
-        this.checkUserInput();
-
-        if (!this.isPaused) {
-            this.checkCollisions();
-            this.updateObjects();
+        switch (this.gameState) {
+            case GameState.MENU:
+                this.renderObjects(); // On dessine le jeu en fond
+                break;
+            case GameState.COUNTDOWN:
+                this.checkUserInput();
+                this.renderObjects();
+                break;
+            case GameState.PLAYING:
+                this.checkUserInput();
+                this.checkCollisions();
+                this.updateObjects();
+                this.renderObjects();
+                if (this.state.balls.length <= 0) {
+                    this.loseLife();
+                }
+                break;
+            case GameState.GAME_OVER:
+            case GameState.VICTORY:
+                return; // On arrête la boucle
         }
-        
-        this.renderObjects();
-
-        if (this.state.balls.length <= 0 && !this.isPaused) {
-            this.loseLife();
-        }
-        
         requestAnimationFrame(this.loop.bind(this));
     }
 
@@ -654,7 +686,7 @@ class Game {
         }
 
         if(isActive && (evt.key === ' ' || evt.key === 'Spacebar')){
-            if (this.isPaused) return;
+            if (this.gameState !== GameState.PLAYING) return;
 
             let ballWasStuck = false;
             this.state.balls.forEach(ball => {

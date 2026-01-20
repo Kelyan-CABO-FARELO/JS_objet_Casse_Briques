@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 body {
-    background-color: #000020; /* Fond bleu nuit, style space invaders */
+    background-color: #000020;
     font-family: 'Press Start 2P', cursive;
     color: #FFFFFF;
     display: flex;
@@ -10,31 +10,29 @@ body {
     justify-content: center;
     height: 100vh;
     margin: 0;
-    image-rendering: pixelated; /* Pour que les images restent pixelisées */
+    image-rendering: pixelated;
 }
 
 h1 {
     font-size: 3.5rem;
-    margin-bottom: 3rem;
-    /* Effet de balayage de couleur arc-en-ciel */
+    margin-bottom: 1rem; /* Réduction de la marge pour mieux s'adapter */
     background: linear-gradient(90deg, #00FFFF, #FF00FF, #FFFF00, #00FFFF);
     background-size: 200% auto;
     background-clip: text;
-    -webkit-background-clip: text; /* Pour la compatibilité avec les navigateurs Webkit */
+    -webkit-background-clip: text;
     color: transparent;
     animation: rainbow-scroll 4s linear infinite;
-    /* On garde une ombre simple pour la lisibilité */
     text-shadow: 2px 2px 0px rgba(0,0,0,0.4);
 }
 
 canvas {
-    background-color: #1E90FF; /* Fond bleu "dodgerblue" */
+    background-color: #1E90FF;
     display: block;
-    /* On enlève la bordure et on la remplace par une ombre */
-    box-shadow: 0 0 20px #00FFFF; /* Lueur cyan autour du canvas */
+    box-shadow: 0 0 20px #00FFFF;
 }
 
-#start-modal{
+/* Style commun pour les modales */
+#start-modal, #end-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -45,9 +43,10 @@ canvas {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    z-index: 100; /* NOUVEAU: Assure que la modale est au-dessus de tout */
 }
 
-#div-modal-content{
+#div-modal-content {
     background-color: #1a1a1a;
     padding: 40px;
     border-radius: 10px;
@@ -55,30 +54,29 @@ canvas {
     text-align: center;
 }
 
-#title-start-modal{
-    color: #FFFFFF;
+#div-modal-content h1 {
+    color: #FFFFFF; /* Le titre de la modale n'a pas l'effet arc-en-ciel */
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
 }
 
-#selectorLevel{
+#selectorLevel {
     font-size: 1.2rem;
     margin: 20px;
 }
 
-#buttonStart{
+#buttonStart, #button2Players, #end-modal button {
+    font-family: 'Press Start 2P', cursive; /* Assure la cohérence de la police */
     font-size: 1.5rem;
     padding: 10px 20px;
     cursor: pointer;
     margin: 10px;
+    background-color: #333;
+    color: #FFF;
+    border: 2px solid #FFF;
 }
 
-#button2Players{
-    font-size: 1.5rem;
-    padding: 10px 20px;
-    cursor: pointer;
-    margin: 10px;
-}
-
-/* Animation de balayage de couleur pour le titre */
 @keyframes rainbow-scroll {
     to {
         background-position: -200% center;
