@@ -68,6 +68,14 @@ canvas {
     font-size: 1.5rem;
     padding: 10px 20px;
     cursor: pointer;
+    margin: 10px;
+}
+
+#button2Players{
+    font-size: 1.5rem;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin: 10px;
 }
 
 /* Animation de balayage de couleur pour le titre */

@@ -70,6 +70,8 @@ class Game {
         1: { score: 0, life: 3, levelIndex: 0, bricks: null },
         2: { score: 0, life: 3, levelIndex: 0, bricks: null }
     };
+    isPaused = true;
+    countdownText = null;
 
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
@@ -103,6 +105,7 @@ class Game {
         this.initGameObjects();
         this.renderObjects();
         this.createStartModal();
+        requestAnimationFrame(this.loop.bind(this));
     }
 
 
@@ -152,20 +155,43 @@ class Game {
     startGame(levelIndex) {
         this.currentLevelIndex = levelIndex;
         this.currentPlayerId = 1;
-        
-        // Initialisation des joueurs
+
         this.players[1] = { score: 0, life: 3, levelIndex: levelIndex, bricks: null };
         this.players[2] = { score: 0, life: 3, levelIndex: levelIndex, bricks: null };
-        
+
         this.score = 0;
         this.life = 3;
         this.updateScore(0);
         this.updateLifeDisplay();
         this.updatePlayerDisplay();
 
-        this.loadLevel(this.currentLevelIndex);
+        this.loadLevel(this.currentLevelIndex, false);
         document.body.removeChild(this.startModal);
-        requestAnimationFrame(this.loop.bind(this));
+        this.startCountdown();
+    }
+
+    startCountdown() {
+        this.isPaused = true;
+        this.countdownText = '3';
+        setTimeout(() => {
+            this.countdownText = '2';
+            setTimeout(() => {
+                this.countdownText = '1';
+                setTimeout(() => {
+                    this.countdownText = 'GO!';
+                    this.isPaused = false;
+                    this.state.balls.forEach(ball => {
+                        if (ball.isStuck) {
+                            ball.speed = this.config.ball.speed;
+                            ball.isStuck = false;
+                        }
+                    });
+                    setTimeout(() => {
+                        this.countdownText = null;
+                    }, 500);
+                }, 1000);
+            }, 1000);
+        }, 1000);
     }
 
     initHtmlUI() {
@@ -232,7 +258,6 @@ class Game {
 
         if (this.twoPlayer) {
             const otherPlayerId = this.currentPlayerId === 1 ? 2 : 1;
-            // Si l'autre joueur est encore en vie, on change de tour
             if (this.players[otherPlayerId].life > 0) {
                 this.switchTurn();
                 return;
@@ -242,68 +267,67 @@ class Game {
         if (this.life <= 0) {
             const elH1 = document.querySelector('h1');
             if (this.twoPlayer) {
-                // Sauvegarde du score final du joueur courant avant affichage
                 this.players[this.currentPlayerId].score = this.score;
                 elH1.textContent = `GAME OVER - P1: ${this.players[1].score} - P2: ${this.players[2].score}`;
             } else {
                 elH1.textContent = `GAME OVER - Score: ${this.score}`;
             }
+            this.isPaused = true;
             return;
         }
 
-        this.resetBall();
+        this.resetBall(true);
     }
 
     switchTurn() {
-        // Sauvegarde de l'état du joueur actuel
         this.players[this.currentPlayerId].score = this.score;
         this.players[this.currentPlayerId].life = this.life;
         this.players[this.currentPlayerId].levelIndex = this.currentLevelIndex;
         this.players[this.currentPlayerId].bricks = this.state.bricks;
 
-        // Changement de joueur
         this.currentPlayerId = this.currentPlayerId === 1 ? 2 : 1;
-        
-        // Restauration de l'état du nouveau joueur
+
         this.score = this.players[this.currentPlayerId].score;
         this.life = this.players[this.currentPlayerId].life;
         this.currentLevelIndex = this.players[this.currentPlayerId].levelIndex;
-        
-        this.updateScore(0); // Met à jour l'affichage
+
+        this.updateScore(0);
         this.updateLifeDisplay();
         this.updatePlayerDisplay();
 
-        // Réinitialisation des bonus et balles
         this.state.bonus = [];
         this.state.lasers = [];
         this.state.balls = [];
         this.perforBall = false;
         this.stickyBall = false;
         this.laserMunitions = 0;
-        
-        // Restauration des briques ou chargement du niveau
+
         if (this.players[this.currentPlayerId].bricks) {
             this.state.bricks = this.players[this.currentPlayerId].bricks;
-            this.resetBall();
+            this.resetBall(true);
         } else {
-            this.loadLevel(this.currentLevelIndex);
+            this.loadLevel(this.currentLevelIndex, true);
         }
-        
-        // Affichage d'un message de changement de tour (optionnel mais sympa)
+
         console.log(`Tour du Joueur ${this.currentPlayerId}`);
     }
     
-    resetBall() {
+    resetBall(withCountdown = false) {
         this.state.balls = [];
         const paddle = this.state.paddle;
         const randomAngle = Math.floor(Math.random() * 120) + 31;
         const ballDiameter = this.config.ball.radius * 2;
-        const ball = new Ball(this.images.ball, ballDiameter, ballDiameter, randomAngle, this.config.ball.speed);
+        const ball = new Ball(this.images.ball, ballDiameter, ballDiameter, randomAngle, 0);
+        ball.isStuck = true;
         const ballX = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
         const ballY = paddle.position.y - ball.size.height - 5;
         ball.setPosition(ballX, ballY);
         ball.isCircular = true;
         this.state.balls.push(ball);
+
+        if (withCountdown) {
+            this.startCountdown();
+        }
     }
 
     initImages() {
@@ -347,11 +371,10 @@ class Game {
         edgeLeft.tag = 'LeftEdge'
         this.state.bouncingEdges.push(edgeTop, edgeRight, edgeLeft);
 
-        // On charge le premier niveau par défaut, il sera écrasé par la sélection
-        this.loadLevel(this.currentLevelIndex);
+        this.loadLevel(this.currentLevelIndex, false);
     }
 
-    loadLevel(levelIndex) {
+    loadLevel(levelIndex, withCountdown = true) {
         this.state.bricks = [];
         this.state.bonus = [];
         this.state.lasers = [];
@@ -365,10 +388,11 @@ class Game {
             } else {
                 elH1.textContent = `Victoire ! Score final : ${this.score}`;
             }
+            this.isPaused = true;
             return;
         }
         this.loadBricks(levelData);
-        this.resetBall();
+        this.resetBall(withCountdown);
     }
 
     loadBricks(levelArray) {
@@ -385,7 +409,7 @@ class Game {
                 } else {
                     brik = new Brik(this.images.brick, 50, 25, brickType);
                 }
-                
+
                 brik.setPosition(20 + (50 * column), 20 + (25 * line));
                 this.state.bricks.push(brik);
             }
@@ -417,6 +441,14 @@ class Game {
             paddle.speed = 0;
         }
         paddle.update();
+
+        this.state.balls.forEach(ball => {
+            if (ball.isStuck) {
+                ball.position.x = paddle.position.x + (paddle.size.width / 2) - (ball.size.width / 2);
+                // Ajout d'un décalage pour que la balle flotte au-dessus pour éviter le bug que l'image de balle soit dans celle du paddle au démarrage
+                ball.position.y = paddle.position.y - ball.size.height - 5;
+            }
+        });
     }
 
     checkCollisions() {
@@ -431,13 +463,10 @@ class Game {
 
             this.state.bricks.forEach(theBrick => {
                 if (theBrick.strength <= 0 && theBrick.type !== -1) return;
-                
+
                 const collisionType = theBall.getCollisionType(theBrick);
 
                 if (collisionType !== CollisionType.NONE) {
-                    // Si la balle n'est pas perforante, elle rebondit
-                    // Si la balle est perforante, elle ne rebondit PAS sur les briques cassables
-                    // MAIS elle doit rebondir sur les briques incassables
                     if (!this.perforBall || theBrick.type === -1) {
                         if (collisionType === CollisionType.HORIZONTAL) theBall.reverseOrientationX();
                         else theBall.reverseOrientationY();
@@ -446,11 +475,11 @@ class Game {
                     if (theBrick.type !== -1) {
                         theBrick.strength--;
                         if (theBrick.strength === 0 && theBrick.type !== 'S') this.updateScore(theBrick.type);
-                        
+
                         if(theBrick.type === 'S' && theBrick.strength === 0){
                             const bonusTypes = Object.values(BonusType);
                             const randomType = bonusTypes[Math.floor(Math.random() * bonusTypes.length)];
-                            
+
                             const bonusImage = this.images.bonuses[randomType];
                             const newBonus = new Bonus(bonusImage, 50, 25, randomType);
                             newBonus.setPosition(theBrick.position.x, theBrick.position.y);
@@ -560,11 +589,7 @@ class Game {
 
     updateObjects() {
         this.state.balls.forEach(theBall => {
-            if (theBall.isStuck) {
-                const paddle = this.state.paddle;
-                theBall.position.x = paddle.position.x + (paddle.size.width / 2) - (theBall.size.width / 2);
-                theBall.position.y = paddle.position.y - theBall.size.height;
-            } else {
+            if (!theBall.isStuck) {
                 theBall.update();
             }
         });
@@ -573,7 +598,7 @@ class Game {
 
         this.state.bonus = this.state.bonus.filter(bonus => !bonus.toRemove);
         this.state.lasers = this.state.lasers.filter(laser => !laser.toRemove);
-        
+
         this.state.bricks = this.state.bricks.filter(theBrick => theBrick.strength !== 0 || theBrick.type === -1);
 
         const breakableBricks = this.state.bricks.filter(brick => brick.type !== -1);
@@ -591,23 +616,32 @@ class Game {
         this.state.balls.forEach(theBall => theBall.draw());
         this.state.bonus.forEach(bonus => bonus.draw());
         this.state.lasers.forEach(laser => laser.draw());
+
+        if (this.countdownText) {
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "bold 80px 'Press Start 2P'";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText(this.countdownText, this.config.canvasSize.width / 2, this.config.canvasSize.height / 2);
+        }
     }
 
     loop() {
         if (this.life <= 0) return;
 
         this.checkUserInput();
-        this.checkCollisions();
-        this.updateObjects();
+
+        if (!this.isPaused) {
+            this.checkCollisions();
+            this.updateObjects();
+        }
+        
         this.renderObjects();
 
-        if (this.state.balls.length <= 0) {
+        if (this.state.balls.length <= 0 && !this.isPaused) {
             this.loseLife();
         }
         
-        if (this.life > 0) {
-            requestAnimationFrame(this.loop.bind(this));
-        }
+        requestAnimationFrame(this.loop.bind(this));
     }
 
     handlerKeyboard(isActive, evt) {
@@ -618,8 +652,10 @@ class Game {
             if (isActive && this.state.userInput.paddleRight) this.state.userInput.paddleRight = false;
             this.state.userInput.paddleLeft = isActive;
         }
-        
+
         if(isActive && (evt.key === ' ' || evt.key === 'Spacebar')){
+            if (this.isPaused) return;
+
             let ballWasStuck = false;
             this.state.balls.forEach(ball => {
                 if (ball.isStuck) {
@@ -634,7 +670,7 @@ class Game {
                 const paddle = this.state.paddle;
                 const laserLeft = new Laser(this.images.laser, paddle.position.x + 10, paddle.position.y);
                 const laserRight = new Laser(this.images.laser, paddle.position.x + paddle.size.width - 20, paddle.position.y);
-                
+
                 this.state.lasers.push(laserLeft, laserRight);
                 this.laserMunitions--;
             }
