@@ -1,6 +1,6 @@
-# 🚀 Casse-Briques Pro 🚀
+# 🚀 Casse-Briques 🚀
 
-Bienvenue dans Casse-Briques Pro, une réinterprétation moderne et riche en fonctionnalités du jeu d'arcade classique, entièrement développée en JavaScript orienté objet. Préparez-vous à une expérience de jeu dynamique avec des bonus, des malus, et plusieurs modes de jeu.
+Bienvenue dans Casse-Briques, une réinterprétation moderne et riche en fonctionnalités du jeu d'arcade classique, entièrement développée en JavaScript orienté objet. Préparez-vous à une expérience de jeu dynamique avec des bonus, des malus, et plusieurs modes de jeu.
 
 ![Gameplay](/app/src/assets/img/Gameplay_jeu.png)
 ---
