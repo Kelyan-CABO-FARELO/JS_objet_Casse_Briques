@@ -234,7 +234,7 @@ class Game {
             document.body.removeChild(this.startModal);
         }
 
-        // Initialise une grille vide (10 lignes x 16 colonnes)
+        // Initialise une grille vide (19 lignes x 16 colonnes)
         const rows = 19;
         const cols = 16;
         this.editorGrid = Array(rows).fill(0).map(() => Array(cols).fill(0));
@@ -332,7 +332,7 @@ class Game {
                 } else {
                     // Calcul pour afficher la bonne couleur de brique (spritesheet)
                     const sourceX = (brickWidth * type) - brickWidth;
-                    const sourceY = (brickHeight * type) - brickHeight; // Hypothèse simple: strength = type pour l'affichage
+                    const sourceY = (brickHeight * type) - brickHeight;
 
                     this.ctx.drawImage(
                         this.images.brick,
