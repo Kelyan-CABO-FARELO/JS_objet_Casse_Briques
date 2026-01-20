@@ -1,21 +1,18 @@
 # 🚀 Casse-Briques Pro 🚀
 
-Bienvenue dans Casse-Briques Pro, une réinterprétation moderne et riche en fonctionnalités du jeu d'arcade classique, entièrement développée en JavaScript orienté objet. Préparez-vous à une expérience de jeu dynamique avec des bonus, des malus, plusieurs modes de jeu et même un éditeur de niveaux intégré !
+Bienvenue dans Casse-Briques Pro, une réinterprétation moderne et riche en fonctionnalités du jeu d'arcade classique, entièrement développée en JavaScript orienté objet. Préparez-vous à une expérience de jeu dynamique avec des bonus, des malus, et plusieurs modes de jeu.
 
 ![Gameplay](/app/src/assets/img/Gameplay_jeu.png)
-
 ---
 
-## 🌟 Fonctionnalités
+## 🌟 Fonctionnalités Actuelles
 
-Ce n'est pas le casse-briques de votre enfance ! Découvrez une liste de fonctionnalités conçues pour une rejouabilité maximale :
-
-*   **Moteur Physique Orienté Objet :** Une structure de code propre et modulaire où chaque élément (balle, paddle, brique) est un objet indépendant.
-*   **Système de Niveaux :** Chargez des niveaux prédéfinis depuis un fichier `levels.json` facile à éditer.
+*   **Moteur de Jeu Orienté Objet :** Une structure de code propre où chaque élément (balle, paddle, brique) est une classe indépendante, facilitant la maintenance et l'ajout de nouvelles fonctionnalités.
+*   **Système de Niveaux :** Charge des niveaux prédéfinis depuis un fichier `levels.json`.
 *   **Types de Briques Variés :**
-    *   **Briques Classiques :** Avec différents niveaux de résistance.
-    *   **Briques Incassables :** Des obstacles indestructibles pour pimenter le défi.
-    *   **Super Briques :** Détruisez-les pour libérer des bonus aléatoires !
+    *   **Briques Classiques :** Avec différents niveaux de résistance selon leur type.
+    *   **Briques Incassables (`-1`) :** Des obstacles indestructibles pour pimenter le défi.
+    *   **Super Briques (`S`) :** Détruisez-les pour libérer un bonus (ou malus) aléatoire !
 *   **Arsenal de Bonus & Malus :**
     *   💥 **Multiball :** Libère une pluie de 5 nouvelles balles !
     *   ↔️ **Paddle Agrandit :** Augmente la taille de votre paddle pendant 10 secondes.
@@ -24,22 +21,19 @@ Ce n'est pas le casse-briques de votre enfance ! Découvrez une liste de fonctio
     *   ✨ **Paddle Collant :** Attrapez la balle et relancez-la au moment parfait avec la barre d'espace.
     *   🔫 **Laser :** Vous donne 3 tirs de laser à déclencher avec la barre d'espace.
 *   **Modes de Jeu :**
-    *   **1 Joueur :** Le mode arcade classique.
-    *   **2 Joueurs (Tour par Tour) :** Affrontez un ami ! Chaque joueur joue jusqu'à perdre une vie.
-*   **Éditeur de Niveaux :**
-    *   Créez vos propres niveaux directement dans le jeu.
-    *   Sauvegardez et chargez vos créations grâce au `localStorage` de votre navigateur.
+    *   **1 Joueur :** Le mode arcade classique avec un système de vies et de score.
+    *   **2 Joueurs (Tour par Tour) :** Affrontez un ami ! Chaque joueur joue jusqu'à perdre une vie, puis c'est au tour du suivant. Les scores sont conservés et comparés à la fin.
 *   **Expérience de Jeu Soignée :**
-    *   Écran d'accueil avec sélection du mode et du niveau.
-    *   Compte à rebours avant chaque début de partie pour vous laisser le temps de vous préparer.
-    *   Système de vies et de score.
-    *   Écrans de Victoire et de Game Over.
+    *   **Écran d'Accueil en Modale :** Le jeu démarre avec une modale pour choisir le mode et le niveau de départ.
+    *   **Compte à Rebours :** Un timer "3, 2, 1, GO!" se lance avant chaque début de partie, après avoir perdu une vie ou lors d'un changement de joueur, pour laisser le temps de se préparer.
+    *   **Machine à États :** Le jeu est géré par une machine à états (`MENU`, `COUNTDOWN`, `PLAYING`, `GAME_OVER`) pour un contrôle propre du déroulement de la partie.
+    *   **Écrans de Fin :** Des modales claires pour les écrans de "Victoire" et de "Game Over", avec un résumé des scores et un bouton pour rejouer.
 
 ---
 
 ## 🛠️ Installation et Lancement
 
-Ce projet utilise `webpack` pour gérer les modules JavaScript.
+Ce projet utilise `webpack` pour gérer les modules JavaScript et le serveur de développement.
 
 1.  **Installez les dépendances :**
     ```bash
@@ -72,35 +66,32 @@ Libérez votre créativité avec l'éditeur de niveaux intégré !
 
 1.  **Accès :** Depuis l'écran d'accueil, cliquez sur le bouton "Éditeur de Niveaux".
 2.  **Création :**
-    *   **Palette d'outils :** Une barre d'outils apparaît, vous permettant de sélectionner un type de brique (Normale, Incassable, Super Brique) ou l'effaceur.
-    *   **Placement :** Cliquez sur le canevas pour placer la brique sélectionnée. Vous pouvez maintenir le clic et glisser pour "peindre" des briques.
-    *   **Effacement :** Sélectionnez l'effaceur et cliquez sur les briques que vous souhaitez retirer.
+    *   **Placement :** Cliquez sur le canevas pour placer les briques (1 coups -> 2 coups -> 3 coups -> 4 coups -> Bonus -> incassables)
 3.  **Sauvegarde :**
-    *   Donnez un nom à votre niveau dans le champ de texte prévu.
-    *   Cliquez sur "Sauvegarder". Votre niveau est maintenant stocké dans votre navigateur !
+    *   Cliquez sur "Sauvegarder et Jouer". Votre niveau est maintenant stocké dans votre navigateur et lance la partie !
+    * ATTENTION !! Si vous recréez un niveaux le dernier sera supprimé
 4.  **Jouer :**
-    *   Depuis l'écran d'accueil, vos niveaux personnalisés apparaîtront dans le sélecteur de niveaux, prêts à être joués en mode 1 ou 2 joueurs.
+    *   Depuis l'écran d'accueil, vous trouverez un bouton "Jouer niveau Perso" cliquez dessus et c'est le dernier niveaux personnalisé enregistré qui va se lancer.
 
 ---
 
 ## 💻 Pour les Développeurs : Structure du Code
 
-Le projet est structuré autour de classes JavaScript pour une meilleure organisation.
+Le projet est structuré autour de classes JavaScript pour une meilleure organisation et modularité.
 
-*   **`Game.js` :** Le cœur du jeu. Il contient la boucle principale (`loop`), la machine à états (`GameState`), et gère l'interaction entre tous les objets.
-*   **`GameObject.js` :** La classe de base pour tous les objets visibles à l'écran (position, taille, image).
+*   **`Game.js` :** Le cœur du jeu. Il contient la boucle principale (`loop`), la machine à états (`GameState`), et gère l'interaction entre tous les objets du jeu.
+*   **`GameObject.js` :** La classe de base pour tous les objets visibles à l'écran (gère la position, la taille, et l'image).
 *   **`MovingObject.js` :** Hérite de `GameObject` et ajoute la logique de mouvement (vitesse, orientation).
 *   **`Ball.js`, `Paddle.js`, `Brik.js`, `Bonus.js`, `Laser.js` :** Des classes spécifiques qui héritent de `GameObject` ou `MovingObject` et implémentent leur propre logique de dessin et de comportement.
-*   **`levels.json` :** Contient les données des niveaux prédéfinis sous forme de tableaux 2D.
-*   **`localStorage` :** Utilisé pour la persistance des niveaux personnalisés créés par l'utilisateur.
+*   **`levels.json` :** Contient les données des niveaux prédéfinis sous forme de tableaux 2D, où chaque nombre représente un type de brique.
 
 ---
 
 ## 🔮 Améliorations Futures Possibles
 
+*   Finaliser l'éditeur de niveaux.
 *   Ajouter des effets sonores pour les collisions, les bonus et la musique de fond.
-*   Créer plus de types de bonus (balle de feu, vie supplémentaire, etc.).
-*   Ajouter des boss de fin de niveau.
-*   Améliorer l'interface de l'éditeur avec plus d'options.
+*   Créer plus de types de bonus (vie supplémentaire, balle lente, etc.).
+*   Afficher le nombre de munitions laser à l'écran.
 
 Amusez-vous bien !
