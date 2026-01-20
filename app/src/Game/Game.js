@@ -83,6 +83,9 @@ class Game {
     gameState = GameState.MENU;
     countdownText = null;
 
+    // NOUVEAU: Grille pour l'éditeur
+    editorGrid = [];
+
     images = {
         ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
         bonuses: {}, laser: null
@@ -116,6 +119,9 @@ class Game {
         requestAnimationFrame(this.loop.bind(this));
     }
 
+    // -------------------------------------------------------------------------
+    // GESTION DES MODALES (START / END)
+    // -------------------------------------------------------------------------
 
     createStartModal() {
         this.startModal = document.createElement('div');
@@ -136,8 +142,9 @@ class Game {
             levelSelector.appendChild(option);
         });
 
+        // Bouton 1 Joueur
         const startButton = document.createElement('button');
-        startButton.id = 'buttonStart';
+        startButton.id = 'button1Player';
         startButton.textContent = '1 Joueur';
         startButton.addEventListener('click', () => {
             this.onePlayer = true;
@@ -145,6 +152,7 @@ class Game {
             this.startGame(parseInt(levelSelector.value, 10));
         });
 
+        // Bouton 2 Joueurs
         const button2Players = document.createElement('button');
         button2Players.id = 'button2Players';
         button2Players.textContent = '2 Joueurs';
@@ -154,16 +162,39 @@ class Game {
             this.startGame(parseInt(levelSelector.value, 10));
         });
 
+        // Bouton Éditeur
+        const editorButton = document.createElement('button');
+        editorButton.id = 'editorButton';
+        editorButton.textContent = 'Éditeur de niveaux';
+        editorButton.addEventListener('click', () => {
+            this.startEditor();
+        });
 
-        modalContent.append(title, levelSelector, startButton, button2Players);
+        // Bouton Charger Niveau Perso
+        const loadCustomBtn = document.createElement('button');
+        loadCustomBtn.textContent = 'Jouer niveau Perso';
+        loadCustomBtn.id = 'buttonEditLevel';
+        loadCustomBtn.onclick = () => {
+            const saved = localStorage.getItem('customLevel');
+            if (saved) {
+                this.levels.data.push(JSON.parse(saved));
+                // On lance le dernier niveau ajouté
+                this.onePlayer = true; // Par défaut en solo pour le custom
+                this.twoPlayer = false;
+                this.startGame(this.levels.data.length - 1);
+            } else {
+                alert("Aucun niveau sauvegardé !");
+            }
+        };
+
+        modalContent.append(title, levelSelector, startButton, button2Players, editorButton, loadCustomBtn);
         this.startModal.appendChild(modalContent);
         document.body.appendChild(this.startModal);
     }
 
-    // NOUVEAU: Modale de fin de partie
     createEndModal(message) {
         const endModal = document.createElement('div');
-        endModal.id = 'end-modal';
+        endModal.id = 'start-modal'; // On réutilise le style du start-modal
 
         const modalContent = document.createElement('div');
         modalContent.id = 'div-modal-content';
@@ -171,23 +202,151 @@ class Game {
         const title = document.createElement('h1');
         title.textContent = message;
 
-        const scoreText = document.createElement('p');
+        const scoreDisplay = document.createElement('p');
+        scoreDisplay.style.fontSize = '1.2rem';
+        scoreDisplay.style.margin = '20px';
+
         if (this.twoPlayer) {
-            scoreText.textContent = `Score J1: ${this.players[1].score} - Score J2: ${this.players[2].score}`;
+            scoreDisplay.innerHTML = `P1: ${this.players[1].score} pts <br> P2: ${this.players[2].score} pts`;
         } else {
-            scoreText.textContent = `Score final: ${this.score}`;
+            scoreDisplay.textContent = `Score Final : ${this.score}`;
         }
 
-        const replayButton = document.createElement('button');
-        replayButton.textContent = 'Rejouer';
-        replayButton.addEventListener('click', () => {
-            window.location.reload(); // La manière la plus simple de tout réinitialiser
+        const restartButton = document.createElement('button');
+        restartButton.id = 'buttonStart';
+        restartButton.textContent = 'MENU PRINCIPAL';
+        restartButton.addEventListener('click', () => {
+            window.location.reload();
         });
 
-        modalContent.append(title, scoreText, replayButton);
+        modalContent.append(title, scoreDisplay, restartButton);
         endModal.appendChild(modalContent);
         document.body.appendChild(endModal);
     }
+
+    // -------------------------------------------------------------------------
+    // GESTION DE L'ÉDITEUR
+    // -------------------------------------------------------------------------
+
+    startEditor() {
+        this.gameState = GameState.EDITOR;
+        if(this.startModal && this.startModal.parentNode) {
+            document.body.removeChild(this.startModal);
+        }
+
+        // Initialise une grille vide (10 lignes x 16 colonnes)
+        const rows = 19;
+        const cols = 16;
+        this.editorGrid = Array(rows).fill(0).map(() => Array(cols).fill(0));
+
+        // Bouton pour sauvegarder et jouer
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = "SAUVEGARDER ET JOUER";
+        saveBtn.style.position = "fixed";
+        saveBtn.style.bottom = "20px";
+        saveBtn.id = "buttonSave";
+        saveBtn.style.fontFamily = "'Press Start 2P', cursive";
+        saveBtn.style.padding = "10px";
+        saveBtn.style.cursor = "pointer";
+        saveBtn.style.zIndex = "1000";
+
+        saveBtn.onclick = () => this.saveCustomLevel();
+        document.body.appendChild(saveBtn);
+    }
+
+    handleMouseInput(e) {
+        if (this.gameState !== GameState.EDITOR) return;
+
+        const rect = this.ctx.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Calcul de la case cliquée (offset de 20px pour les murs)
+        const col = Math.floor((x - 20) / 50);
+        const row = Math.floor((y - 20) / 25);
+
+        if (row >= 0 && row < 19 && col >= 0 && col < 16) {
+            const current = this.editorGrid[row][col];
+            let next = 0;
+
+            // Cycle : 0 (vide) -> 1 -> 2 -> 3 -> 4 -> S -> -1 (incassable) -> 0
+            if (current === 0) next = 1;
+            else if (current === 1) next = 2;
+            else if (current === 2) next = 3;
+            else if (current === 3) next = 4;
+            else if (current === 4) next = 'S';
+            else if (current === 'S') next = -1;
+            else if (current === -1) next = 0;
+
+            this.editorGrid[row][col] = next;
+        }
+    }
+
+    saveCustomLevel() {
+        // Sauvegarde la grille dans le localStorage
+        localStorage.setItem('customLevel', JSON.stringify(this.editorGrid));
+
+        // Nettoyage de l'interface éditeur
+        const btn = document.getElementById('buttonSave');
+        if (btn) btn.remove();
+
+        // Ajout aux niveaux
+        const customData = JSON.parse(localStorage.getItem('customLevel'));
+        this.levels.data.push(customData);
+
+        // Configuration pour lancer le jeu
+        this.onePlayer = true;
+        this.twoPlayer = false;
+
+        // Lance le jeu sur ce nouveau niveau
+        this.startGame(this.levels.data.length - 1);
+    }
+
+    renderEditor() {
+        this.ctx.clearRect(0, 0, this.config.canvasSize.width, this.config.canvasSize.height);
+
+        // Dessine les bordures pour repère
+        this.state.bouncingEdges.forEach(edge => edge.draw());
+
+        const brickWidth = 50;
+        const brickHeight = 25;
+        const offsetX = 20;
+        const offsetY = 20;
+
+        for (let r = 0; r < this.editorGrid.length; r++) {
+            for (let c = 0; c < this.editorGrid[r].length; c++) {
+                const x = offsetX + (c * brickWidth);
+                const y = offsetY + (r * brickHeight);
+
+                // Grille visuelle légère
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.strokeRect(x, y, brickWidth, brickHeight);
+
+                const type = this.editorGrid[r][c];
+                if (type === 0) continue;
+
+                if (type === 'S') {
+                    this.ctx.drawImage(this.images.superBrick, x, y, brickWidth, brickHeight);
+                } else if (type === -1) {
+                    this.ctx.drawImage(this.images.incassableBrick, x, y, brickWidth, brickHeight);
+                } else {
+                    // Calcul pour afficher la bonne couleur de brique (spritesheet)
+                    const sourceX = (brickWidth * type) - brickWidth;
+                    const sourceY = (brickHeight * type) - brickHeight; // Hypothèse simple: strength = type pour l'affichage
+
+                    this.ctx.drawImage(
+                        this.images.brick,
+                        sourceX, sourceY, brickWidth, brickHeight,
+                        x, y, brickWidth, brickHeight
+                    );
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LOGIQUE DE JEU
+    // -------------------------------------------------------------------------
 
     startGame(levelIndex) {
         this.currentLevelIndex = levelIndex;
@@ -203,7 +362,9 @@ class Game {
         this.updatePlayerDisplay();
 
         this.loadLevel(this.currentLevelIndex, false);
-        document.body.removeChild(this.startModal);
+        if(this.startModal && this.startModal.parentNode) {
+            document.body.removeChild(this.startModal);
+        }
         this.startCountdown();
     }
 
@@ -246,7 +407,7 @@ class Game {
         this.spanScore = document.createElement('span');
         this.spanScore.textContent = this.score;
         scoreContainer.appendChild(this.spanScore);
-        
+
         const elLife = document.createElement('div');
         elLife.textContent = 'Vie restante: ';
         this.spanLife = document.createElement('span');
@@ -267,6 +428,9 @@ class Game {
 
         document.body.append(elH1, infoContainer, elCanvas);
         this.ctx = elCanvas.getContext('2d');
+
+        // Écouteur pour l'éditeur de niveau
+        elCanvas.addEventListener('mousedown', this.handleMouseInput.bind(this));
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
         document.addEventListener('keyup', this.handlerKeyboard.bind(this, false));
@@ -303,8 +467,12 @@ class Game {
 
         if (this.life <= 0) {
             this.gameState = GameState.GAME_OVER;
-            this.players[this.currentPlayerId].score = this.score; // Sauvegarde finale
-            this.createEndModal("GAME OVER");
+            this.players[this.currentPlayerId].score = this.score;
+
+            let msg = this.twoPlayer
+                ? `GAME OVER`
+                : "GAME OVER";
+            this.createEndModal(msg);
             return;
         }
 
@@ -343,7 +511,7 @@ class Game {
 
         console.log(`Tour du Joueur ${this.currentPlayerId}`);
     }
-    
+
     resetBall(withCountdown = false) {
         this.state.balls = [];
         const paddle = this.state.paddle;
@@ -412,12 +580,18 @@ class Game {
         this.state.lasers = [];
 
         const levelData = this.levels.data[levelIndex];
+
+        // Vérification fin du jeu (Victoire)
         if (!levelData) {
             this.gameState = GameState.VICTORY;
-            this.players[this.currentPlayerId].score = this.score; // Sauvegarde finale
-            this.createEndModal("VICTOIRE !");
+            this.players[this.currentPlayerId].score = this.score;
+            let msg = this.twoPlayer
+                ? "VICTOIRE !"
+                : "VICTOIRE !";
+            this.createEndModal(msg);
             return;
         }
+
         this.loadBricks(levelData);
         this.resetBall(withCountdown);
     }
@@ -654,7 +828,10 @@ class Game {
     loop() {
         switch (this.gameState) {
             case GameState.MENU:
-                this.renderObjects(); // On dessine le jeu en fond
+                this.renderObjects();
+                break;
+            case GameState.EDITOR:
+                this.renderEditor();
                 break;
             case GameState.COUNTDOWN:
                 this.checkUserInput();
@@ -671,7 +848,7 @@ class Game {
                 break;
             case GameState.GAME_OVER:
             case GameState.VICTORY:
-                return; // On arrête la boucle
+                return;
         }
         requestAnimationFrame(this.loop.bind(this));
     }
