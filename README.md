@@ -89,7 +89,7 @@ Le projet est structuré autour de classes JavaScript pour une meilleure organis
 
 ## 🔮 Améliorations Futures Possibles
 
-*   Finaliser l'éditeur de niveaux.
+*   Améliorer l'éditeur de niveaux.
 *   Ajouter des effets sonores pour les collisions, les bonus et la musique de fond.
 *   Créer plus de types de bonus (vie supplémentaire, balle lente, etc.).
 *   Afficher le nombre de munitions laser à l'écran.
