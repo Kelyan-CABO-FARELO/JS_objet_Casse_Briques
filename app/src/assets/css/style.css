@@ -55,7 +55,7 @@ canvas {
 }
 
 #div-modal-content h1 {
-    color: #FFFFFF; /* Le titre de la modale n'a pas l'effet arc-en-ciel */
+    color: #FFFFFF;
     background: none;
     -webkit-background-clip: initial;
     background-clip: initial;
@@ -75,6 +75,16 @@ canvas {
     background-color: #333;
     color: #FFF;
     border: 2px solid #FFF;
+}
+
+#buttonSave {
+    position: fixed;
+    bottom: 20px;
+    font-family: 'Press Start 2P', cursive;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 1000;
+
 }
 
 @keyframes rainbow-scroll {

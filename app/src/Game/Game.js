@@ -66,7 +66,8 @@ class Game {
     bonusTimers = {
         upPaddle: null,
         downPaddle: null,
-        ballPerfor: null
+        ballPerfor: null,
+        x2 : null
     };
     perforBall = false;
     stickyBall = false;
@@ -208,7 +209,15 @@ class Game {
         scoreDisplay.style.fontSize = '1.2rem';
         scoreDisplay.style.margin = '20px';
 
+        const winner = document.createElement('span');
+
+
         if (this.twoPlayer) {
+            if(this.players["1"].score > this.players["2"].score){
+                winner.innerHTML = "Joueur 1 à gagné !!";
+            }else if(this.players["2"].score > this.players["1"].score){
+                winner.innerHTML = "Joueur 2 à gagné !!";
+            }
             scoreDisplay.innerHTML = `P1: ${this.players[1].score} pts <br> P2: ${this.players[2].score} pts`;
         } else {
             scoreDisplay.textContent = `Score Final : ${this.score}`;
@@ -221,7 +230,7 @@ class Game {
             window.location.reload();
         });
 
-        modalContent.append(title, scoreDisplay, restartButton);
+        modalContent.append(title, winner, scoreDisplay, restartButton);
         endModal.appendChild(modalContent);
         document.body.appendChild(endModal);
     }
@@ -244,13 +253,8 @@ class Game {
         // Bouton pour sauvegarder et jouer
         const saveBtn = document.createElement('button');
         saveBtn.textContent = "SAUVEGARDER ET JOUER";
-        saveBtn.style.position = "fixed";
-        saveBtn.style.bottom = "20px";
         saveBtn.id = "buttonSave";
-        saveBtn.style.fontFamily = "'Press Start 2P', cursive";
-        saveBtn.style.padding = "10px";
-        saveBtn.style.cursor = "pointer";
-        saveBtn.style.zIndex = "1000";
+
 
         saveBtn.onclick = () => this.saveCustomLevel();
         document.body.appendChild(saveBtn);
@@ -795,7 +799,12 @@ class Game {
                 this.laserMunitions += 3;
                 break;
             case BonusType.X2:
+                if(this.bonusTimers.x2) clearTimeout(this.bonusTimers.x2);
                 this.x2 = true;
+                this.bonusTimers.x2 = setTimeout(() => {
+                    this.x2 = false;
+                    this.bonusTimers.x2 = null;
+                }, 10000);
                 break;
         }
     }
