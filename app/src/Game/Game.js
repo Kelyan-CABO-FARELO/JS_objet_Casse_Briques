@@ -94,6 +94,7 @@ class Game {
     gameState = GameState.MENU;
     countdownText = null;
     theme = "retroGaming"; // Thème par défaut
+    difficulty = "Normal"
 
     editorGrid = [];
 
@@ -288,14 +289,16 @@ class Game {
         themeSelected.style.marginBottom = '20px';
         themeSelected.style.display = 'block';
 
+
         const buttonRetroGaming = document.createElement('button');
         buttonRetroGaming.id = 'buttonRetroGaming';
         buttonRetroGaming.textContent = "👾 Rétro Gaming";
         buttonRetroGaming.onclick = () => {
             this.theme = "retroGaming";
             this.initImages();
-            this.createStartModal();
+            this.settingModal();
         }
+
 
         const buttonChristmas = document.createElement('button');
         buttonChristmas.id = 'buttonChristmas';
@@ -303,10 +306,51 @@ class Game {
         buttonChristmas.onclick = () => {
             this.theme = "christmas";
             this.initImages();
+            this.settingModal();
+        }
+
+        const difficultySelected = document.createElement('span');
+        difficultySelected.innerHTML = `Difficulté actuel : ${this.difficulty}`;
+        difficultySelected.style.color = 'white';
+        difficultySelected.style.marginBottom = '20px';
+        difficultySelected.style.display = 'block';
+
+        const buttonEasy = document.createElement('button');
+        buttonEasy.id = 'buttonEasy';
+        buttonEasy.textContent = " Facile";
+        buttonEasy.onclick = () => {
+            this.difficulty = "Facile";
+            this.config.ball.speed = 5;
+            this.settingModal();
+        }
+
+        const buttonBasic = document.createElement('button');
+        buttonBasic.id = 'buttonBasic';
+        buttonBasic.textContent = " Normale";
+        buttonBasic.onclick = () => {
+            this.difficulty = "Normal";
+            this.config.ball.speed = 8;
+            this.settingModal();
+        }
+
+        const buttonHard = document.createElement('button');
+        buttonHard.id = 'buttonHard';
+        buttonHard.textContent = " Difficile";
+        buttonHard.onclick = () => {
+            this.difficulty = "Difficile";
+            this.config.ball.speed = 10;
+            this.settingModal();
+        }
+
+        const buttonExit = document.createElement('button');
+        buttonExit.id = 'buttonExit';
+        buttonExit.textContent = " Retour";
+        buttonExit.onclick = () => {
             this.createStartModal();
         }
 
-        modalContent.append(themeSelected, buttonRetroGaming, buttonChristmas);
+
+        modalContent.append(themeSelected, buttonRetroGaming, buttonChristmas, difficultySelected, buttonEasy, buttonBasic, buttonHard, buttonExit);
         settingModalElement.appendChild(modalContent);
         document.body.appendChild(settingModalElement);
         this.activeModal = settingModalElement;
