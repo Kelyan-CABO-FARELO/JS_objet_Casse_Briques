@@ -3,13 +3,21 @@ import '../assets/css/style.css';
 // Import des données de configuration
 import customConfig from '../config.json';
 import levelsConfig from '../levels.json';
-// Import des assets de sprite
-import ballImgSrc from '../assets/img/ball.png';
-import paddleImgSrc from '../assets/img/paddle.png';
-import brickImgSrc from '../assets/img/brick.png';
-import edgeImgSrc from '../assets/img/edge.png';
-import incassableBrickImgSrc from '../assets/img/brick-1.png';
-import superBrickImgSrc from '../assets/img/brickS.png';
+// Import des assets pour le thème retro gaming
+import ballImgSrcRetroGaming from '../assets/img/retroGaming/ball.png';
+import paddleImgSrcRetroGaming from '../assets/img/retroGaming/paddle.png';
+import brickImgSrcRetroGaming from '../assets/img/retroGaming/brick.png';
+import edgeImgSrcRetroGaming from '../assets/img/retroGaming/edge.png';
+import incassableBrickImgSrcRetroGaming from '../assets/img/retroGaming/brick-1.png';
+import superBrickImgSrcRetroGaming from '../assets/img/retroGaming/brickS.png';
+//Import des assets pour le thème christmas
+import ballImgSrcChristmas from '../assets/img/christmas/ball.png';
+import paddleImgSrcChristmas from '../assets/img/christmas/paddle.png';
+import brickImgSrcChristmas from '../assets/img/christmas/brick.png';
+import edgeImgSrcChristmas from '../assets/img/christmas/edge.png';
+import incassableBrickImgSrcChristmas from '../assets/img/christmas/brick-1.png';
+import superBrickImgSrcChristmas from '../assets/img/christmas/brickS.png';
+// Import des assets pour les pouvoirs
 import powerMBImgSrc from '../assets/img/power_MB.png';
 import powerUPImgSrc from '../assets/img/power_UP.png';
 import powerDPImgSrc from '../assets/img/power_DP.png';
@@ -75,7 +83,7 @@ class Game {
     life = 3;
     spanLife;
     spanPlayer;
-    startModal = null;
+    activeModal = null;
     onePlayer = false;
     twoPlayer = false;
     currentPlayerId = 1;
@@ -85,13 +93,29 @@ class Game {
     };
     gameState = GameState.MENU;
     countdownText = null;
+    theme = "retroGaming"; // Thème par défaut
 
-    // Grille pour l'éditeur
     editorGrid = [];
 
+    // MODIFIÉ: Les objets Image sont créés une seule fois ici
     images = {
-        ball: null, paddle: null, brick: null, edge: null, incassableBrick: null, superBrick: null,
-        bonuses: {}, laser: null
+        ball: new Image(),
+        paddle: new Image(),
+        brick: new Image(),
+        edge: new Image(),
+        incassableBrick: new Image(),
+        superBrick: new Image(),
+        laser: new Image(),
+        x2: new Image(),
+        bonuses: {
+            [BonusType.MULTIBALL]: new Image(),
+            [BonusType.UPPADDLE]: new Image(),
+            [BonusType.DOWNPADDLE]: new Image(),
+            [BonusType.PERFORBALL]: new Image(),
+            [BonusType.STICKYBALL]: new Image(),
+            [BonusType.LASER]: new Image(),
+            [BonusType.X2]: new Image()
+        }
     };
     state = {
         balls: [],
@@ -116,19 +140,28 @@ class Game {
 
     start() {
         this.initHtmlUI();
-        this.initImages();
+        this.initImages(); // Charge les images du thème par défaut
         this.initGameObjects();
         this.createStartModal();
         requestAnimationFrame(this.loop.bind(this));
     }
 
     // -------------------------------------------------------------------------
-    // GESTION DES MODALES (START / END)
+    // GESTION DES MODALES (START / END / SETTINGS)
     // -------------------------------------------------------------------------
 
+    removeActiveModal() {
+        if (this.activeModal && this.activeModal.parentNode) {
+            document.body.removeChild(this.activeModal);
+            this.activeModal = null;
+        }
+    }
+
     createStartModal() {
-        this.startModal = document.createElement('div');
-        this.startModal.id = 'start-modal';
+        this.removeActiveModal();
+
+        const startModal = document.createElement('div');
+        startModal.id = 'start-modal';
 
         const modalContent = document.createElement('div');
         modalContent.id = 'div-modal-content';
@@ -145,7 +178,6 @@ class Game {
             levelSelector.appendChild(option);
         });
 
-        // Bouton 1 Joueur
         const startButton = document.createElement('button');
         startButton.id = 'button1Player';
         startButton.textContent = '1 Joueur';
@@ -155,7 +187,6 @@ class Game {
             this.startGame(parseInt(levelSelector.value, 10));
         });
 
-        // Bouton 2 Joueurs
         const button2Players = document.createElement('button');
         button2Players.id = 'button2Players';
         button2Players.textContent = '2 Joueurs';
@@ -165,7 +196,6 @@ class Game {
             this.startGame(parseInt(levelSelector.value, 10));
         });
 
-        // Bouton Éditeur
         const editorButton = document.createElement('button');
         editorButton.id = 'editorButton';
         editorButton.textContent = 'Éditeur de niveaux';
@@ -173,7 +203,6 @@ class Game {
             this.startEditor();
         });
 
-        // Bouton Charger Niveau Perso
         const loadCustomBtn = document.createElement('button');
         loadCustomBtn.textContent = 'Jouer niveau Perso';
         loadCustomBtn.id = 'buttonEditLevel';
@@ -181,8 +210,7 @@ class Game {
             const saved = localStorage.getItem('customLevel');
             if (saved) {
                 this.levels.data.push(JSON.parse(saved));
-                // On lance le dernier niveau ajouté
-                this.onePlayer = true; // Par défaut en solo pour le custom
+                this.onePlayer = true;
                 this.twoPlayer = false;
                 this.startGame(this.levels.data.length - 1);
             } else {
@@ -190,14 +218,24 @@ class Game {
             }
         };
 
-        modalContent.append(title, levelSelector, startButton, button2Players, editorButton, loadCustomBtn);
-        this.startModal.appendChild(modalContent);
-        document.body.appendChild(this.startModal);
+        const setting = document.createElement('button');
+        setting.textContent = '⚙️';
+        setting.id = 'buttonSetting';
+        setting.onclick = () => {
+            this.settingModal();
+        }
+
+        modalContent.append(title, levelSelector, startButton, button2Players, editorButton, loadCustomBtn, setting);
+        startModal.appendChild(modalContent);
+        document.body.appendChild(startModal);
+        this.activeModal = startModal;
     }
 
     createEndModal(message) {
+        this.removeActiveModal();
+
         const endModal = document.createElement('div');
-        endModal.id = 'start-modal'; // On réutilise le style du start-modal
+        endModal.id = 'start-modal';
 
         const modalContent = document.createElement('div');
         modalContent.id = 'div-modal-content';
@@ -210,7 +248,6 @@ class Game {
         scoreDisplay.style.margin = '20px';
 
         const winner = document.createElement('span');
-
 
         if (this.twoPlayer) {
             if(this.players["1"].score > this.players["2"].score){
@@ -233,6 +270,46 @@ class Game {
         modalContent.append(title, winner, scoreDisplay, restartButton);
         endModal.appendChild(modalContent);
         document.body.appendChild(endModal);
+        this.activeModal = endModal;
+    }
+
+    settingModal(){
+        this.removeActiveModal();
+
+        const settingModalElement = document.createElement('div');
+        settingModalElement.id = 'start-modal';
+
+        const modalContent = document.createElement('div');
+        modalContent.id = 'div-modal-content';
+
+        const themeSelected = document.createElement('span');
+        themeSelected.innerHTML = `Thème actuel: ${this.theme}`;
+        themeSelected.style.color = 'white';
+        themeSelected.style.marginBottom = '20px';
+        themeSelected.style.display = 'block';
+
+        const buttonRetroGaming = document.createElement('button');
+        buttonRetroGaming.id = 'buttonRetroGaming';
+        buttonRetroGaming.textContent = "👾 Rétro Gaming";
+        buttonRetroGaming.onclick = () => {
+            this.theme = "retroGaming";
+            this.initImages();
+            this.createStartModal();
+        }
+
+        const buttonChristmas = document.createElement('button');
+        buttonChristmas.id = 'buttonChristmas';
+        buttonChristmas.textContent = "🎅 Noël";
+        buttonChristmas.onclick = () => {
+            this.theme = "christmas";
+            this.initImages();
+            this.createStartModal();
+        }
+
+        modalContent.append(themeSelected, buttonRetroGaming, buttonChristmas);
+        settingModalElement.appendChild(modalContent);
+        document.body.appendChild(settingModalElement);
+        this.activeModal = settingModalElement;
     }
 
     // -------------------------------------------------------------------------
@@ -241,77 +318,106 @@ class Game {
 
     startEditor() {
         this.gameState = GameState.EDITOR;
-        if(this.startModal && this.startModal.parentNode) {
-            document.body.removeChild(this.startModal);
-        }
+        this.removeActiveModal();
 
-        // Initialise une grille vide (19 lignes x 16 colonnes)
-        const rows = 19;
-        const cols = 16;
-        this.editorGrid = Array(rows).fill(0).map(() => Array(cols).fill(0));
+        const editorUI = document.createElement('div');
+        editorUI.id = 'editor-ui';
+        editorUI.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100;
+        `;
 
-        // Bouton pour sauvegarder et jouer
+        const palette = document.createElement('div');
+        palette.style.cssText = `
+            background-color: #333; padding: 10px; border-radius: 5px;
+            display: flex; gap: 5px; margin-bottom: 20px;
+        `;
+
+        const createPaletteButton = (type, text, imageSrc) => {
+            const btn = document.createElement('button');
+            btn.textContent = text;
+            btn.style.cssText = `
+                width: 50px; height: 25px; background-color: #555; border: 1px solid #FFF;
+                cursor: pointer; font-size: 0.8rem; color: white;
+                background-image: url(${imageSrc}); background-size: cover;
+                background-position: center;
+            `;
+            btn.onclick = () => {
+                this.selectedBrickType = type;
+                Array.from(palette.children).forEach(child => {
+                    child.style.border = '1px solid #FFF';
+                });
+                btn.style.border = '2px solid #00FFFF';
+            };
+            return btn;
+        };
+
+        palette.append(
+            createPaletteButton(1, '1', this.images.brick.src),
+            createPaletteButton(2, '2', this.images.brick.src),
+            createPaletteButton(3, '3', this.images.brick.src),
+            createPaletteButton(4, '4', this.images.brick.src),
+            createPaletteButton('S', 'S', this.images.superBrick.src),
+            createPaletteButton(-1, 'X', this.images.incassableBrick.src),
+            createPaletteButton(0, 'Effacer', '')
+        );
+
         const saveBtn = document.createElement('button');
         saveBtn.textContent = "SAUVEGARDER ET JOUER";
         saveBtn.id = "buttonSave";
-
-
+        saveBtn.style.cssText = `
+            font-family: 'Press Start 2P', cursive; padding: 10px; cursor: pointer;
+            background-color: #00FF00; color: black; border: 2px solid #00FF00;
+            margin-top: 20px;
+        `;
         saveBtn.onclick = () => this.saveCustomLevel();
-        document.body.appendChild(saveBtn);
+
+        editorUI.append(palette, saveBtn);
+        document.body.appendChild(editorUI);
+        this.activeModal = editorUI;
+
+        const rows = 19;
+        const cols = 16;
+        this.editorGrid = Array(rows).fill(0).map(() => Array(cols).fill(0));
     }
 
     handleMouseInput(e) {
-        if (this.gameState !== GameState.EDITOR) return;
+        if (this.gameState !== GameState.EDITOR || !this.selectedBrickType) return;
 
         const rect = this.ctx.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // Calcul de la case cliquée (offset de 20px pour les murs)
-        const col = Math.floor((x - 20) / 50);
-        const row = Math.floor((y - 20) / 25);
+        const brickWidth = 50;
+        const brickHeight = 25;
+        const offsetX = 20;
+        const offsetY = 20;
 
-        if (row >= 0 && row < 19 && col >= 0 && col < 16) {
-            const current = this.editorGrid[row][col];
-            let next = 0;
+        const col = Math.floor((x - offsetX) / brickWidth);
+        const row = Math.floor((y - offsetY) / brickHeight);
 
-            // Cycle : 0 (vide) -> 1 -> 2 -> 3 -> 4 -> S -> -1 (incassable) -> 0
-            if (current === 0) next = 1;
-            else if (current === 1) next = 2;
-            else if (current === 2) next = 3;
-            else if (current === 3) next = 4;
-            else if (current === 4) next = 'S';
-            else if (current === 'S') next = -1;
-            else if (current === -1) next = 0;
-
-            this.editorGrid[row][col] = next;
+        if (row >= 0 && row < this.editorGrid.length && col >= 0 && col < this.editorGrid[0].length) {
+            this.editorGrid[row][col] = this.selectedBrickType;
         }
     }
 
     saveCustomLevel() {
-        // Sauvegarde la grille dans le localStorage
         localStorage.setItem('customLevel', JSON.stringify(this.editorGrid));
-
-        // Nettoyage de l'interface éditeur
-        const btn = document.getElementById('buttonSave');
-        if (btn) btn.remove();
-
-        // Ajout aux niveaux
+        this.removeActiveModal();
+        
         const customData = JSON.parse(localStorage.getItem('customLevel'));
         this.levels.data.push(customData);
 
-        // Configuration pour lancer le jeu
         this.onePlayer = true;
         this.twoPlayer = false;
-
-        // Lance le jeu sur ce nouveau niveau
         this.startGame(this.levels.data.length - 1);
     }
 
     renderEditor() {
         this.ctx.clearRect(0, 0, this.config.canvasSize.width, this.config.canvasSize.height);
 
-        // Dessine les bordures pour repère
         this.state.bouncingEdges.forEach(edge => edge.draw());
 
         const brickWidth = 50;
@@ -324,27 +430,31 @@ class Game {
                 const x = offsetX + (c * brickWidth);
                 const y = offsetY + (r * brickHeight);
 
-                // Grille visuelle légère
                 this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
                 this.ctx.strokeRect(x, y, brickWidth, brickHeight);
 
                 const type = this.editorGrid[r][c];
                 if (type === 0) continue;
 
+                let imageToDraw;
                 if (type === 'S') {
-                    this.ctx.drawImage(this.images.superBrick, x, y, brickWidth, brickHeight);
+                    imageToDraw = this.images.superBrick;
                 } else if (type === -1) {
-                    this.ctx.drawImage(this.images.incassableBrick, x, y, brickWidth, brickHeight);
+                    imageToDraw = this.images.incassableBrick;
                 } else {
-                    // Calcul pour afficher la bonne couleur de brique (spritesheet)
+                    imageToDraw = this.images.brick;
+                }
+                
+                if (type > 0 && type < 5) {
                     const sourceX = (brickWidth * type) - brickWidth;
-                    const sourceY = (brickHeight * type) - brickHeight;
-
+                    const sourceY = 0;
                     this.ctx.drawImage(
-                        this.images.brick,
+                        imageToDraw,
                         sourceX, sourceY, brickWidth, brickHeight,
                         x, y, brickWidth, brickHeight
                     );
+                } else {
+                    this.ctx.drawImage(imageToDraw, x, y, brickWidth, brickHeight);
                 }
             }
         }
@@ -355,6 +465,8 @@ class Game {
     // -------------------------------------------------------------------------
 
     startGame(levelIndex) {
+        this.removeActiveModal();
+
         this.currentLevelIndex = levelIndex;
         this.currentPlayerId = 1;
 
@@ -368,9 +480,6 @@ class Game {
         this.updatePlayerDisplay();
 
         this.loadLevel(this.currentLevelIndex, false);
-        if(this.startModal && this.startModal.parentNode) {
-            document.body.removeChild(this.startModal);
-        }
         this.startCountdown();
     }
 
@@ -435,7 +544,6 @@ class Game {
         document.body.append(elH1, infoContainer, elCanvas);
         this.ctx = elCanvas.getContext('2d');
 
-        // Écouteur pour l'éditeur de niveau
         elCanvas.addEventListener('mousedown', this.handleMouseInput.bind(this));
 
         document.addEventListener('keydown', this.handlerKeyboard.bind(this, true));
@@ -542,23 +650,35 @@ class Game {
         }
     }
 
+    // MODIFIÉ: La méthode ne fait que changer les .src des objets Image existants
     initImages() {
-        this.images.ball = new Image(); this.images.ball.src = ballImgSrc;
-        this.images.paddle = new Image(); this.images.paddle.src = paddleImgSrc;
-        this.images.brick = new Image(); this.images.brick.src = brickImgSrc;
-        this.images.edge = new Image(); this.images.edge.src = edgeImgSrc;
-        this.images.incassableBrick = new Image(); this.images.incassableBrick.src = incassableBrickImgSrc;
-        this.images.superBrick = new Image(); this.images.superBrick.src = superBrickImgSrc;
-        this.images.laser = new Image(); this.images.laser.src = laserImgSrc;
-        this.images.x2 = new Image(); this.images.x2.src = x2ImgSrc
+        if(this.theme === "retroGaming") {
+            this.images.ball.src = ballImgSrcRetroGaming;
+            this.images.paddle.src = paddleImgSrcRetroGaming;
+            this.images.brick.src = brickImgSrcRetroGaming;
+            this.images.edge.src = edgeImgSrcRetroGaming;
+            this.images.incassableBrick.src = incassableBrickImgSrcRetroGaming;
+            this.images.superBrick.src = superBrickImgSrcRetroGaming;
+        } else if(this.theme === "christmas"){
+            this.images.ball.src = ballImgSrcChristmas;
+            this.images.paddle.src = paddleImgSrcChristmas;
+            this.images.brick.src = brickImgSrcChristmas;
+            this.images.edge.src = edgeImgSrcChristmas;
+            this.images.incassableBrick.src = incassableBrickImgSrcChristmas;
+            this.images.superBrick.src = superBrickImgSrcChristmas;
+        }
+        
+        // Les images non-thématiques sont chargées une seule fois
+        this.images.laser.src = laserImgSrc;
+        this.images.x2.src = x2ImgSrc;
 
-        this.images.bonuses[BonusType.MULTIBALL] = new Image(); this.images.bonuses[BonusType.MULTIBALL].src = powerMBImgSrc;
-        this.images.bonuses[BonusType.UPPADDLE] = new Image(); this.images.bonuses[BonusType.UPPADDLE].src = powerUPImgSrc;
-        this.images.bonuses[BonusType.DOWNPADDLE] = new Image(); this.images.bonuses[BonusType.DOWNPADDLE].src = powerDPImgSrc;
-        this.images.bonuses[BonusType.PERFORBALL] = new Image(); this.images.bonuses[BonusType.PERFORBALL].src = powerBPImgSrc;
-        this.images.bonuses[BonusType.STICKYBALL] = new Image(); this.images.bonuses[BonusType.STICKYBALL].src = powerSBImgSrc;
-        this.images.bonuses[BonusType.LASER] = new Image(); this.images.bonuses[BonusType.LASER].src = powerLImgSrc;
-        this.images.bonuses[BonusType.X2] = new Image(); this.images.bonuses[BonusType.X2].src = x2ImgSrc
+        this.images.bonuses[BonusType.MULTIBALL].src = powerMBImgSrc;
+        this.images.bonuses[BonusType.UPPADDLE].src = powerUPImgSrc;
+        this.images.bonuses[BonusType.DOWNPADDLE].src = powerDPImgSrc;
+        this.images.bonuses[BonusType.PERFORBALL].src = powerBPImgSrc;
+        this.images.bonuses[BonusType.STICKYBALL].src = powerSBImgSrc;
+        this.images.bonuses[BonusType.LASER].src = powerLImgSrc;
+        this.images.bonuses[BonusType.X2].src = x2ImgSrc;
     }
 
     initGameObjects() {
@@ -595,7 +715,6 @@ class Game {
 
         const levelData = this.levels.data[levelIndex];
 
-        // Vérification fin du jeu (Victoire)
         if (!levelData) {
             this.gameState = GameState.VICTORY;
             this.players[this.currentPlayerId].score = this.score;
